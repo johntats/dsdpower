@@ -21,7 +21,13 @@
         .navtab.on{border-bottom-color:#2563eb;color:#1e3a8a;font-weight:700}
         .kpi small{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#64748b}
         .kpi b{display:block;margin-top:2px;font-size:24px;font-weight:700;color:#1e293b;font-variant-numeric:tabular-nums}
-        .tw{overflow-x:auto;background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.08)}
+        .tw{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.08)}
+        .tw,.tws{scrollbar-width:auto;scrollbar-color:#64748b #e2e8f0}
+        .tw::-webkit-scrollbar,.tws::-webkit-scrollbar{height:14px}.tw::-webkit-scrollbar-track,.tws::-webkit-scrollbar-track{background:#e2e8f0;border-radius:7px}.tw::-webkit-scrollbar-thumb,.tws::-webkit-scrollbar-thumb{background:#64748b;border-radius:7px;border:2px solid #e2e8f0}
+        .tws{display:none;overflow-x:scroll;overflow-y:hidden;max-width:100%;margin-bottom:4px}.tws div{height:1px}
+        /* first column stays in view while sliding sideways */
+        #sth th:first-child,#tb td:first-child,#con th:first-child,#ctb td:first-child,#agrid .fz{position:sticky;left:0;z-index:1;background:#fff;box-shadow:1px 0 0 #e2e8f0}
+        #sth th:first-child,#con th:first-child,#agrid th.fz{background:#f1f5f9;z-index:3}
         table{border-collapse:collapse;width:100%;font-size:13px}
         th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #e2e8f0;white-space:nowrap}
         th{background:#f1f5f9;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#334155}
@@ -34,7 +40,7 @@
         .fd summary::-webkit-details-marker{display:none}.fd summary::after{content:" \25BE"}.fd[open] summary,.fd.on summary{border-color:#2563eb;color:#1e3a8a}
         .fp{position:absolute;z-index:10;margin-top:4px;min-width:200px;max-height:260px;overflow:auto;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.15);padding:8px;font-size:13px}
         .fp label{display:flex;gap:8px;align-items:center;padding:4px 6px;cursor:pointer;white-space:nowrap;border-radius:6px}.fp label:hover{background:#f1f5f9}
-        #agrid th{position:sticky;top:0;z-index:2;cursor:pointer;user-select:none}
+        #agrid th{cursor:pointer;user-select:none}
         #agrid th:hover{color:#1e3a8a}
         td.ed{cursor:cell}td.ed:hover{background:#eff6ff}td.cal{background:#f8fafc;color:#64748b}
         td.cell-ed{padding:3px 4px}
@@ -117,7 +123,7 @@
                 <button id="aexp" class="btn" title="Download the current data as an Excel file (backup)">Export to Excel</button>
             </div>
             <p class="text-xs text-slate-500 mb-2"><span id="ahint"></span> <span id="amsg" class="font-semibold"></span></p>
-            <div class="tw" style="max-height:70vh;overflow:auto"><table id="agrid"></table></div>
+            <div class="tw"><table id="agrid"></table></div>
             <div id="apg" class="flex items-center gap-3 mt-3 text-sm"></div>
         </div>
     </section>
@@ -240,6 +246,6 @@ const tabs=document.querySelectorAll('nav button'),TABS=['col','acc','con'];
 function showTab(t){tabs.forEach(x=>x.classList.toggle('on',x.dataset.t===t));TABS.forEach(i=>$('#'+i).hidden=i!==t);if(t==='con')CT.open()}
 tabs.forEach(b=>b.onclick=()=>showTab(b.dataset.t));
 Auth.ready.then(ok=>{if(!ok)return;const P={col:Auth.can('collections'),acc:Auth.can('accounts'),con:Auth.can('contacts')};
-AE.init();CT.init();if(P.col||P.acc)loadSaved();
+AE.init();CT.init();document.querySelectorAll('.tw').forEach(dualScroll);if(P.col||P.acc)loadSaved();
 const h=location.hash.slice(1);showTab(P[h]?h:TABS.find(t=>P[t]))});
 </script></body></html>

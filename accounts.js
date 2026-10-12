@@ -10,6 +10,15 @@ function flash(el, text, bad) {
   el.textContent = text; el.className = 'font-semibold ' + (bad ? 'text-red-600' : 'text-emerald-700');
   clearTimeout(el._t); if (!bad && text !== 'Saving\u2026') el._t = setTimeout(() => { el.textContent = ''; }, 3000);
 }
+/* A second scrollbar above a wide table, kept in sync with the one below, so sideways scrolling is easy to find. */
+function dualScroll(w) {
+  if (w._ds) return; w._ds = 1;
+  const bar = document.createElement('div'), inner = document.createElement('div'); bar.className = 'tws'; bar.append(inner); w.parentNode.insertBefore(bar, w);
+  const upd = () => { inner.style.width = w.scrollWidth + 'px'; bar.style.display = w.scrollWidth > w.clientWidth + 1 ? 'block' : 'none'; };
+  bar.addEventListener('scroll', () => { if (w.scrollLeft !== bar.scrollLeft) w.scrollLeft = bar.scrollLeft; });
+  w.addEventListener('scroll', () => { if (bar.scrollLeft !== w.scrollLeft) bar.scrollLeft = w.scrollLeft; });
+  const ro = new ResizeObserver(upd); ro.observe(w); const t = w.querySelector('table'); if (t) ro.observe(t); upd();
+}
 /* Click-to-edit for a table cell. opts: {value, type, save(value) -> Promise<bool>, next(dir)} */
 function editCell(td, o) {
   const old = td.innerHTML, inp = document.createElement('input');
@@ -65,7 +74,7 @@ const AE = (() => {
   function rowHtml(r) {
     const u = can('update');
     return `<tr data-id="${esc(r._id)}">` + (can('delete') ? '<td><button class="xb" data-del="1" title="Delete this account">\u2715</button></td>' : '') +
-      cols.map(([k], i) => `<td data-i="${i}" class="${MONEY.has(k) ? 'n ' : ''}${locked(r, k) ? 'cal' : u ? 'ed' : ''}"${locked(r, k) ? ' title="Calculated automatically"' : ''}>${esc(fmt(r, k))}</td>`).join('') + '</tr>';
+      cols.map(([k], i) => `<td data-i="${i}" class="${k === 'CUSTOMER NAME' ? 'fz ' : ''}${MONEY.has(k) ? 'n ' : ''}${locked(r, k) ? 'cal' : u ? 'ed' : ''}"${locked(r, k) ? ' title="Calculated automatically"' : ''}>${esc(fmt(r, k))}</td>`).join('') + '</tr>';
   }
   // Excel-style: columns of numbers (and dates) sort highest / newest first, text sorts A to Z
   const isNum = k => { const t = typeOf(k); return t === 'd' || (t !== 's' && recs.every(r => r[k] == null || typeof r[k] === 'number')); };
@@ -87,7 +96,7 @@ const AE = (() => {
     const l = list(), last = Math.max(0, Math.ceil(l.length / st.size) - 1); if (st.page > last) st.page = last;
     $a('#acnt').textContent = l.length + ' of ' + recs.length + ' accounts';
     $a('#agrid').innerHTML = '<thead><tr>' + (can('delete') ? '<th></th>' : '') +
-      cols.map(([k]) => `<th data-sort="${esc(k)}" title="Click to sort">${esc(k)}${arrow(k)}</th>`).join('') + '</tr></thead><tbody>' +
+      cols.map(([k]) => `<th data-sort="${esc(k)}"${k === 'CUSTOMER NAME' ? ' class="fz"' : ''} title="Click to sort">${esc(k)}${arrow(k)}</th>`).join('') + '</tr></thead><tbody>' +
       l.slice(st.page * st.size, (st.page + 1) * st.size).map(rowHtml).join('') + '</tbody>';
     pager($a('#apg'), l.length, st.page, st.size, p => { st.page = p; render(); $a('#agrid').parentNode.scrollTop = 0; });
   }
@@ -138,7 +147,7 @@ const AE = (() => {
   function init() {
     const ed = isEd(); $a('#accEdit').hidden = !ed; $a('#accView').hidden = ed; if (!ed) return;
     $a('#aadd').hidden = !can('create');
-    $a('#ahint').textContent = can('update') ? 'Click a cell to edit it (Enter or Tab saves, Esc cancels, grey cells are calculated). Click a column heading to sort: A\u2192Z for text, highest first for numbers; click again to reverse, a third time to clear.' : 'You can view this grid but not edit it.';
+    $a('#ahint').textContent = can('update') ? 'Click a cell to edit it (Enter or Tab saves, Esc cancels, grey cells are calculated). Click a column heading to sort: A\u2192Z for text, highest first for numbers; click again to reverse, a third time to clear. Slide sideways with the scrollbar above the table, Shift + mouse wheel, or by swiping; the customer name stays in view.' : 'You can view this grid but not edit it.';
     $a('#aq').oninput = $a('#abl').onchange = () => { st.page = 0; render(); };
     $a('#aflt').onchange = e => { const t = e.target, k = t.closest('details') && t.closest('details').dataset.k; if (!k) return; t.checked ? sel[k].add(t.value) : sel[k].delete(t.value); st.page = 0; syncFilterLabels(); render(); };
     $a('#aflt').onclick = e => { if (e.target.id !== 'aclr') return; FK.forEach(([k]) => sel[k].clear()); $a('#aflt').querySelectorAll('input').forEach(i => i.checked = false); syncFilterLabels(); st.page = 0; render(); };
