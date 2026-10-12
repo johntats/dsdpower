@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin · CEPALCO Collection Monitoring</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="auth.js" data-admin></script>
+    <style>
+        body{background:#eef1f5;font-family:'Inter',system-ui,sans-serif}
+        header.no-print{position:sticky;top:0;z-index:20}
+        input:focus,select:focus{outline:2px solid #2563eb;outline-offset:1px}
+        [hidden]{display:none!important}
+        .navtab{display:inline-block;padding:12px 0;border:0;border-bottom:3px solid transparent;border-radius:0;background:none;font:inherit;font-size:14px;font-weight:500;color:#475569;cursor:pointer;text-decoration:none}
+        .navtab:hover{color:#1e3a8a}
+        .navtab.on{border-bottom-color:#2563eb;color:#1e3a8a;font-weight:700}
+        .card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.08)}
+        table{border-collapse:collapse;width:100%;font-size:13px}
+        th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #e2e8f0}
+        th{background:#f1f5f9;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#334155}
+        .in{border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:6px 10px;font-size:13px}
+        .lk{color:#1d4ed8;font-weight:500;cursor:pointer;background:none;border:0;padding:0 8px 0 0;font-size:13px}.lk.red{color:#b91c1c}
+        input[type=checkbox]{width:16px;height:16px}
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
+    <header class="bg-blue-900 text-white shadow-md no-print">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-yellow-400 p-2.5 rounded-lg text-blue-900 font-black tracking-wider text-xl">CEPALCO</div>
+                <div><h1 class="text-lg font-bold tracking-tight">Collection Monitoring Update System</h1>
+                <p class="text-xs text-blue-200">Billing &amp; Collection Department • Admin</p></div>
+            </div>
+            <div class="text-right text-xs text-slate-300"><span>Cagayan de Oro City, Northern Mindanao</span><span id="authSlot" class="ml-3"></span></div>
+        </div>
+    </header>
+    <nav class="bg-white border-b border-slate-200 no-print">
+        <div class="max-w-7xl mx-auto px-4 flex gap-6">
+            <a class="navtab" href="index.html" data-feature="collections">Collections</a>
+            <a class="navtab" href="index.html#acc" data-feature="accounts">Accounts</a>
+            <a class="navtab" href="report.html" data-feature="report">Generate report</a>
+            <a class="navtab on" href="admin.html" data-admin>Admin</a>
+        </div>
+    </nav>
+    <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <p id="m" class="text-sm lg:col-span-2 min-h-[1.25rem]"></p>
+        <section class="card p-5">
+            <h2 class="font-bold text-base mb-3">Users</h2>
+            <table><thead><tr><th>Username</th><th>Role</th><th>Actions</th></tr></thead><tbody id="ul"></tbody></table>
+            <form id="nu" class="mt-4 flex flex-wrap gap-2 items-center">
+                <input id="u" class="in" placeholder="New username" autocomplete="off" required>
+                <input id="p" class="in" type="password" placeholder="Password" autocomplete="new-password" required>
+                <button class="bg-blue-900 text-white font-semibold rounded-lg px-4 py-1.5 text-sm hover:bg-blue-800">Create user</button>
+            </form>
+        </section>
+        <section class="card p-5">
+            <h2 class="font-bold text-base mb-1">Permissions</h2>
+            <p class="text-xs text-slate-500 mb-3">Pick who to edit, then tick what they can do. Admin always has full access.</p>
+            <select id="who" class="in mb-3"></select>
+            <table><thead><tr><th>Feature</th><th class="text-center">View</th><th class="text-center">Create</th><th class="text-center">Edit</th><th class="text-center">Delete</th></tr></thead><tbody id="mx"></tbody></table>
+            <p class="text-xs text-slate-500 mt-3">Today the pages enforce <b>View</b>. Create / Edit / Delete are saved for future features, which can check them with <code>Auth.can('feature','update')</code>.</p>
+        </section>
+    </main>
+<script>
+Auth.ready.then(ok=>{if(!ok)return;
+const db=Auth.db(),$=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const msg=(t,e)=>{$('#m').textContent=t;$('#m').className='text-sm lg:col-span-2 min-h-[1.25rem] '+(e?'text-red-600':'text-emerald-700')};
+function users(){$('#ul').innerHTML=db.users.map(x=>`<tr><td>${esc(x.u)}</td><td>${x.role==='admin'?'Admin':'User'}</td><td><button class="lk" data-a="pw" data-u="${esc(x.u)}">Reset password</button>${x.role==='admin'?'':`<button class="lk red" data-a="del" data-u="${esc(x.u)}">Delete</button>`}</td></tr>`).join('');
+const cur=$('#who').value;$('#who').innerHTML='<option value="guest">Guest</option>'+db.users.filter(x=>x.role==='user').map(x=>`<option value="${esc(x.u)}">User: ${esc(x.u)}</option>`).join('');if([...$('#who').options].some(o=>o.value===cur))$('#who').value=cur;mx()}
+function mx(){const p=db.perms[$('#who').value]||{};$('#mx').innerHTML=Object.entries(Auth.FEATS).map(([f,n])=>`<tr><td class="font-semibold">${n}</td>`+Auth.ACTS.map(a=>`<td class="text-center"><input type="checkbox" data-f="${f}" data-a="${a}" ${p[f]&&p[f][a]?'checked':''}></td>`).join('')+'</tr>').join('')}
+$('#who').onchange=mx;
+$('#mx').onchange=e=>{const t=e.target,k=$('#who').value,p=db.perms[k]=db.perms[k]||{};(p[t.dataset.f]=p[t.dataset.f]||Auth.row(0))[t.dataset.a]=t.checked?1:0;Auth.save();msg('Permissions saved')};
+$('#nu').onsubmit=async e=>{e.preventDefault();const u=$('#u').value.trim().toLowerCase(),p=$('#p').value;
+if(!/^[a-z0-9._-]{3,20}$/.test(u))return msg('Username: 3-20 letters, numbers, . _ -',1);
+if(u==='guest'||db.users.some(x=>x.u===u))return msg('That username is taken',1);
+if(p.length<4)return msg('Password needs at least 4 characters',1);
+db.users.push({u,ph:await Auth.H(u,p),role:'user'});db.perms[u]=JSON.parse(JSON.stringify(db.perms.guest));Auth.save();e.target.reset();msg('User "'+u+'" created (starts with the same access as guest)');users()};
+$('#ul').onclick=async e=>{const b=e.target.closest('button');if(!b)return;const u=b.dataset.u;
+if(b.dataset.a==='pw'){const p=prompt('New password for '+u+' (min 4 characters):');if(p===null)return;if(p.length<4)return msg('Password needs at least 4 characters',1);db.users.find(x=>x.u===u).ph=await Auth.H(u,p);Auth.save();msg('Password updated for '+u)}
+else if(confirm('Delete user '+u+'?')){db.users=db.users.filter(x=>x.u!==u);delete db.perms[u];Auth.save();msg('User deleted');users()}};
+users()});
+</script>
+</body>
+</html>

@@ -7,6 +7,7 @@
     <!-- Tailwind CSS (same as report page) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="auth.js" data-guard="collections,accounts"></script>
     <style>
         body{background:#eef1f5;font-family:'Inter',system-ui,sans-serif}
         header.no-print{position:sticky;top:0;z-index:20}
@@ -14,6 +15,7 @@
         .card{background:#fff;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(15,23,42,.08)}
         select:focus,input:focus{outline:2px solid #2563eb;outline-offset:1px}
         select,input[type=text],input:not([type]){border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:6px 10px;font-size:13px}
+        [hidden]{display:none!important}
         .navtab{display:inline-block;padding:12px 0;border:0;border-bottom:3px solid transparent;border-radius:0;background:none;font:inherit;font-size:14px;font-weight:500;color:#475569;cursor:pointer;text-decoration:none}
         .navtab:hover{color:#1e3a8a}
         .navtab.on{border-bottom-color:#2563eb;color:#1e3a8a;font-weight:700}
@@ -43,7 +45,7 @@
                 </div>
             </div>
             <div class="text-right text-xs text-slate-300 flex items-center gap-3">
-                <span id="st">No data loaded</span>
+                <span id="st">No data loaded</span><span id="authSlot"></span>
                 <label class="bg-yellow-400 text-blue-900 font-semibold rounded-lg px-4 py-2 cursor-pointer hover:bg-yellow-300 text-sm">Load Excel<input type="file" id="f" accept=".xlsx,.xlsm" hidden></label>
             </div>
         </div>
@@ -52,9 +54,10 @@
     <!-- Menu bar (same on every page) -->
     <nav class="bg-white border-b border-slate-200 no-print">
         <div class="max-w-7xl mx-auto px-4 flex gap-6">
-            <button class="navtab on" data-t="col">Collections</button>
-            <button class="navtab" data-t="acc">Accounts</button>
-            <a class="navtab" href="report.html">Generate report</a>
+            <button class="navtab on" data-t="col" data-feature="collections">Collections</button>
+            <button class="navtab" data-t="acc" data-feature="accounts">Accounts</button>
+            <a class="navtab" href="report.html" data-feature="report">Generate report</a>
+            <a class="navtab" href="admin.html" data-admin hidden>Admin</a>
         </div>
     </nav>
 
@@ -138,5 +141,5 @@ $('#cnt').textContent=l.length+' accounts';
 $('#tb').innerHTML=l.slice(0,400).map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.type)}</td><td>${esc(r.cn)}</td><td>${r.due?r.due.toLocaleDateString('en-PH'):''}</td><td class="n">${php(r.total)}</td><td class="n">${php(r.paid)}</td><td>${r.pm?ml(r.pm):''}</td><td><span class="tag ${({'Fully paid':'Fu','Partially paid':'Pa','Overpaid':'Ov','No payment':'No','No billing':'Nob'})[r.st]}">${r.st}</span></td><td class="${r.tm.toLowerCase()}">${r.tm}</td><td class="n">${php(r.rem)}</td></tr>`).join('')}
 ['#mo','#ty','#sb'].forEach(i=>$(i).onchange=()=>{view()});$('#q').oninput=table;
 const tabs=document.querySelectorAll('nav button');tabs.forEach(b=>b.onclick=()=>{tabs.forEach(x=>x.classList.toggle('on',x===b));['col','acc'].forEach(i=>$('#'+i).hidden=i!==b.dataset.t)});
-if(location.hash==='#acc')document.querySelector('nav button[data-t="acc"]').click();
+Auth.ready.then(ok=>{if(!ok)return;const c=Auth.can('collections'),a=Auth.can('accounts'),b=t=>document.querySelector('nav button[data-t="'+t+'"]');if(!c)b('acc').click();else if(a&&location.hash==='#acc')b('acc').click()});
 </script></body></html>

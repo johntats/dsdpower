@@ -10,6 +10,7 @@ A static website (GitHub + Netlify) that reads your `ACCOUNTS_MASTERLIST` Excel 
 ## Status tags
 Each account gets one tag, used on the Accounts table and the report page:
 - **Fully paid:** remaining balance is zero.
+- **Overpaid:** remaining balance is negative. Listed by name with the overpaid amount in the report.
 - **Partially paid:** has a paid amount and still has a remaining balance.
 - **No payment:** has a bill and no paid amount.
 - **No billing:** no bill (BILLING says NO BILL, or no bill amount).

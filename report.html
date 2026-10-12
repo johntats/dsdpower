@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CEPALCO Collection Monitoring Update Tool</title>
+    <script src="auth.js" data-guard="report"></script>
     <!-- Tailwind CSS for UI controls styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- SheetJS for Excel Reading -->
@@ -80,6 +81,7 @@
         #btnGenerate{font-size:13px;padding:10px 20px}
         select:focus,input:focus{outline:2px solid #2563eb;outline-offset:1px}
         #reportCanvasContainer{box-shadow:0 8px 30px rgba(15,23,42,.12)}
+        [hidden]{display:none!important}
         .navtab{display:inline-block;padding:12px 0;border:0;border-bottom:3px solid transparent;border-radius:0;background:none;font:inherit;font-size:14px;font-weight:500;color:#475569;cursor:pointer;text-decoration:none}
         .navtab:hover{color:#1e3a8a}
         .navtab.on{border-bottom-color:#2563eb;color:#1e3a8a;font-weight:700}
@@ -100,7 +102,7 @@
                 </div>
             </div>
             <div class="text-right text-xs text-slate-300">
-                <span>Cagayan de Oro City, Northern Mindanao</span>
+                <span>Cagayan de Oro City, Northern Mindanao</span><span id="authSlot" class="ml-3"></span>
             </div>
         </div>
     </header>
@@ -108,9 +110,10 @@
     <!-- Menu bar (same on every page) -->
     <nav class="bg-white border-b border-slate-200 no-print">
         <div class="max-w-7xl mx-auto px-4 flex gap-6">
-            <a class="navtab" href="index.html">Collections</a>
-            <a class="navtab" href="index.html#acc">Accounts</a>
-            <a class="navtab on" href="report.html">Generate report</a>
+            <a class="navtab" href="index.html" data-feature="collections">Collections</a>
+            <a class="navtab" href="index.html#acc" data-feature="accounts">Accounts</a>
+            <a class="navtab on" href="report.html" data-feature="report">Generate report</a>
+            <a class="navtab" href="admin.html" data-admin hidden>Admin</a>
         </div>
     </nav>
 
