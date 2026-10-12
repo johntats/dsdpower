@@ -1,0 +1,1642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CEPALCO Collection Monitoring Update Tool</title>
+    <!-- Tailwind CSS for UI controls styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS for Excel Reading -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Chart.js for High-Fidelity Data Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2pdf for Direct PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Google Fonts for Aptos-like look or exact match if present -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Aptos';
+            src: local('Aptos'), local('Aptos Display'), local('Calibri'), local('Segoe UI'), sans-serif;
+        }
+
+        .report-editable-area, 
+        .report-editable-area * {
+            font-family: 'Aptos', 'Calibri', sans-serif !important;
+            font-size: 12pt !important;
+            line-height: 1.5 !important;
+        }
+
+        /* Report Style specifically for beautiful print/export representation */
+        .report-table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .report-table th, .report-table td {
+            border: 1px solid #1e293b;
+            padding: 8px 10px;
+            vertical-align: top;
+            text-align: left;
+        }
+        .report-table th {
+            background-color: #f1f5f9;
+            font-weight: bold;
+        }
+
+        /* Prevent awkward splitting across page boundaries on PDF/Print */
+        .report-table tr, 
+        .chart-block, 
+        .summary-block,
+        .task-block {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+
+        /* Print formatting */
+        @media print {
+            body {
+                background-color: #ffffff;
+                color: #000000;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-container {
+                box-shadow: none !important;
+                border: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+            }
+            @page {
+                size: letter;
+                margin: 0.5in;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
+
+    <!-- Header Navigation Bar -->
+    <header class="bg-blue-900 text-white shadow-md no-print">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-yellow-400 p-2.5 rounded-lg text-blue-900 font-black tracking-wider text-xl">
+                    CEPALCO
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight">Collection Monitoring Update System</h1>
+                    <p class="text-xs text-blue-200">Billing & Collection Department • Automated Report Compiler</p>
+                </div>
+            </div>
+            <div class="text-right text-xs text-slate-300">
+                <a href="index.html" class="underline mr-3">Back to monitor</a><span>Cagayan de Oro City, Northern Mindanao</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        
+        <!-- CONTROL PANEL & STEPPING (Hidden during print) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 no-print">
+            
+            <!-- Left Side controls: Loader, reference, and parameters -->
+            <div class="lg:col-span-5 space-y-6">
+                
+                <!-- STEP 1: LOAD & DETECT WITH EMBEDDED EXCEL REFERENCE -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="bg-blue-600 text-white font-bold rounded-full w-6 h-6 flex items-center justify-center text-sm">1</span>
+                        <h2 class="font-bold text-slate-800 text-base">Excel Masterlist Upload & Format</h2>
+                    </div>
+                    
+                    <p class="text-xs text-slate-500 mb-3">
+                        Upload your <code>.xlsx</code> or <code>.xlsm</code> master sheet. Ensure your spreadsheet contains matching column keywords.
+                    </p>
+
+                    <!-- Row containing Upload Dropzone and Excel Layout Reference side-by-side -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Left Sub-card: Interactive drop area -->
+                        <div class="flex flex-col justify-between">
+                            <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-lg py-6 px-3 cursor-pointer hover:border-blue-500 hover:bg-slate-50 transition-all h-full text-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V4a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                                </svg>
+                                <span class="text-xs font-semibold text-slate-600">Choose Masterlist</span>
+                                <span class="text-[9px] text-slate-400 mt-0.5">Accepts .xlsx, .xlsm</span>
+                                <input type="file" id="excelFile" class="hidden" accept=".xlsx, .xlsm">
+                            </label>
+                        </div>
+
+                        <!-- Right Sub-card: Direct Excel Layout format helper -->
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <h3 class="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                Expected Excel Format
+                            </h3>
+                            <div class="overflow-x-auto text-[9px] text-slate-600 leading-tight">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-200 font-bold">
+                                            <th class="p-1 border border-slate-300">Column Keyword</th>
+                                            <th class="p-1 border border-slate-300">Expected Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="p-1 border border-slate-300 font-mono">Account Name</td>
+                                            <td class="p-1 border border-slate-300">Customer Corp Name</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="p-1 border border-slate-300 font-mono">Category</td>
+                                            <td class="p-1 border border-slate-300 font-semibold text-blue-800">POWER / SCHOOLS...</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="p-1 border border-slate-300 font-mono">Billing</td>
+                                            <td class="p-1 border border-slate-300 font-semibold text-orange-800">Standard / NO BILL</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="p-1 border border-slate-300 font-mono text-emerald-800">DN/ODAA</td>
+                                            <td class="p-1 border border-slate-300 italic text-emerald-800">OK / GEN / Partial</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="p-1 border border-slate-300 font-mono">Amount Due</td>
+                                            <td class="p-1 border border-slate-300 font-semibold">Blank = Paid (Not 0)</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="fileInfo" class="mt-4 hidden p-3 bg-blue-50 text-blue-900 rounded-lg text-xs space-y-1">
+                        <p class="font-semibold text-emerald-700 flex items-center gap-1" id="loadedFileName">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                            File loaded successfully!
+                        </p>
+                        <div class="mt-2">
+                            <label class="block text-[10px] uppercase font-bold text-slate-500">Active Sheet Selection</label>
+                            <select id="sheetSelect" class="w-full mt-1 p-1.5 border border-blue-300 rounded bg-white text-xs text-blue-900 font-semibold"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 2: METADATA & PARAMETERS WITH FULL WEEK SCOPE OPTIONS -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="bg-blue-600 text-white font-bold rounded-full w-6 h-6 flex items-center justify-center text-sm">2</span>
+                        <h2 class="font-bold text-slate-800 text-base">Report & Period Parameters</h2>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Report Month</label>
+                                <select id="reportMonth" class="w-full p-2 border border-slate-300 rounded text-xs">
+                                    <option value="1">January</option>
+                                    <option value="2">February</option>
+                                    <option value="3">March</option>
+                                    <option value="4">April</option>
+                                    <option value="5">May</option>
+                                    <option value="6">June</option>
+                                    <option value="7">July</option>
+                                    <option value="8">August</option>
+                                    <option value="9">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Report Year</label>
+                                <select id="reportYear" class="w-full p-2 border border-slate-300 rounded text-xs">
+                                    <option value="2025">2025</option>
+                                    <option value="2026" selected>2026</option>
+                                    <option value="2027">2027</option>
+                                    <option value="2028">2028</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Week Scope Selection</label>
+                            <select id="weekScope" class="w-full p-2 border border-slate-300 rounded text-xs">
+                                <option value="all">All Weeks (Full Month)</option>
+                                <option value="1">Week 1</option>
+                                <option value="2">Week 2</option>
+                                <option value="3">Week 3</option>
+                                <option value="4">Week 4</option>
+                                <option value="5">Week 5</option>
+                                <option value="1-2" selected>Week 1–2</option>
+                                <option value="2-3">Week 2–3</option>
+                                <option value="3-4">Week 3–4</option>
+                                <option value="4-5">Week 4–5</option>
+                                <option value="1-3">Week 1–3</option>
+                                <option value="2-4">Week 2–4</option>
+                                <option value="3-5">Week 3–5</option>
+                                <option value="1-4">Week 1–4</option>
+                                <option value="2-5">Week 2–5</option>
+                                <option value="1-5">Week 1–5</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Prepared By (Your Name)</label>
+                            <input type="text" id="preparerName" value="John" class="w-full p-2 border border-slate-300 rounded text-xs" placeholder="e.g. John Doe">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Supervisor / Recipient</label>
+                            <input type="text" id="recipientName" value="Sir Jun" class="w-full p-2 border border-slate-300 rounded text-xs" placeholder="e.g. Sir Jun">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EXCEL MAPPING / CORRESPONDENCE AUDIT -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="font-semibold text-slate-800 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                        Spreadsheet Mapping Log
+                    </h3>
+                    <p class="text-[11px] text-slate-500 mb-3">Below details the automatically detected matches for CEPALCO keywords.</p>
+                    <div id="mappingStatus" class="space-y-2 text-[11px] max-h-48 overflow-y-auto">
+                        <div class="text-slate-400 italic">No file uploaded yet.</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right side: Realtime interactive report editing -->
+            <div class="lg:col-span-7 flex flex-col space-y-4">
+                
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <div class="flex items-center gap-2">
+                        <button id="btnGenerate" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors shadow">
+                            Generate Report
+                        </button>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button id="btnPrint" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                            Print Layout
+                        </button>
+                        <button id="btnPDF" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                            Save as PDF
+                        </button>
+                        <button id="btnCopyText" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                            Copy Plain Text
+                        </button>
+                        <button id="btnExportWord" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            Export .DOCX
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50 border-l-4 border-amber-500 p-3 text-xs text-amber-900 rounded-r shadow-xs">
+                    <span class="font-bold">📝 Document Editor:</span> Click inside the layout container below to customize remarks, lists, or headers. Your edits are saved in print/export outputs. Fonts are locked to **Aptos / Calibri at 12-point**.
+                </div>
+
+                <!-- Raw JSON / Data summary debug tool (collapsible) -->
+                <details class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs">
+                    <summary class="font-bold cursor-pointer text-slate-700 flex justify-between items-center">
+                        <span>View Parsed Excel Analytics</span>
+                        <span class="bg-blue-100 text-blue-800 text-[9px] px-1.5 py-0.5 rounded font-mono">Debug view</span>
+                    </summary>
+                    <div id="dataSummaryStats" class="mt-2 space-y-1 font-mono text-[11px] text-slate-600">
+                        No Excel sheet loaded yet. Use Step 1 to trigger auto analysis.
+                    </div>
+                </details>
+            </div>
+        </div>
+
+        <!-- THE ACTUAL PRINTABLE / EXPORTABLE REPORT COMPONENT -->
+        <div id="reportCanvasContainer" class="mt-6 bg-white p-8 rounded-xl shadow-md border border-slate-200 print-container mx-auto max-w-[21cm]">
+            <div id="reportContent" class="report-editable-area outline-none" contenteditable="true">
+                <p>Hi Sir Jun,</p>
+                <p>Good day.</p>
+                <p>Please see the Collection Monitoring Update for March 2026 (1st and 2nd Week), summarizing the current collection performance, collection efforts, and overall task progress.</p>
+                <p>Please refer to the summary table below for details.</p>
+                
+                <p>&nbsp;</p>
+                <p style="text-align: center; font-weight: bold; font-size: 14pt !important; margin-bottom: 2px;">COLLECTION MONITORING UPDATE</p>
+                <p style="text-align: center; margin-bottom: 20px;" id="canvasSubTitle">March 2026 - 1st and 2nd Week</p>
+
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 20%;">CATEGORY</th>
+                            <th style="width: 20%;">POWER</th>
+                            <th style="width: 20%;">SCHOOLS</th>
+                            <th style="width: 20%;">STREETLIGHTS</th>
+                            <th style="width: 20%;">NET METERING</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="font-weight: bold;">PAYMENT STATUS</td>
+                            <td>
+                                <div>Fully Paid Accounts: <strong>0</strong></div>
+                                <div style="color: #64748b; font-size: 11px !important;">(No records loaded)</div>
+                                <div class="mt-2">Partially Paid: <strong>0</strong></div>
+                                <div class="mt-2">No Bill Accounts: <strong>0</strong></div>
+                                <div class="mt-2">Unpaid Accounts:</div>
+                                <div style="padding-left: 10px;">• 1-Month: <strong>0</strong></div>
+                                <div style="padding-left: 10px;">• 2+ Months: <strong>0</strong></div>
+                                <div class="mt-2" style="font-size: 11px !important;">% Breakdown:</div>
+                                <div style="font-size: 11px !important; color:#475569;">
+                                    * Fully Paid: 0%<br>
+                                    * Partially Paid: 0%<br>
+                                    * No Bill: 0%<br>
+                                    * 1-Month: 0%<br>
+                                    * 2+ Months: 0%
+                                </div>
+                            </td>
+                            <td>
+                                <div>Fully Paid Accounts: <strong>0</strong></div>
+                                <div class="mt-2">Partially Paid: <strong>0</strong></div>
+                                <div class="mt-2">No Bill Accounts: <strong>0</strong></div>
+                                <div class="mt-2">Unpaid Accounts:</div>
+                                <div style="padding-left: 10px;">• 1-Month: <strong>0</strong></div>
+                                <div style="padding-left: 10px;">• 2+ Months: <strong>0</strong></div>
+                                <div class="mt-2" style="font-size: 11px !important;">% Breakdown:</div>
+                                <div style="font-size: 11px !important; color:#475569;">
+                                    * Fully Paid: 0%<br>
+                                    * Partially Paid: 0%<br>
+                                    * No Bill: 0%<br>
+                                    * 1-Month: 0%<br>
+                                    * 2+ Months: 0%
+                                </div>
+                            </td>
+                            <td>
+                                <div>Fully Paid Accounts: <strong>0</strong></div>
+                                <div class="mt-2">Partially Paid: <strong>0</strong></div>
+                                <div class="mt-2">No Bill Accounts: <strong>0</strong></div>
+                                <div class="mt-2">Unpaid Accounts:</div>
+                                <div style="padding-left: 10px;">• 1-Month: <strong>0</strong></div>
+                                <div style="padding-left: 10px;">• 2+ Months: <strong>0</strong></div>
+                                <div class="mt-2" style="font-size: 11px !important;">% Breakdown:</div>
+                                <div style="font-size: 11px !important; color:#475569;">
+                                    * Fully Paid: 0%<br>
+                                    * Partially Paid: 0%<br>
+                                    * No Bill: 0%<br>
+                                    * 1-Month: 0%<br>
+                                    * 2+ Months: 0%
+                                </div>
+                            </td>
+                            <td>
+                                <div>Fully Paid Accounts: <strong>0</strong></div>
+                                <div class="mt-2">Partially Paid: <strong>0</strong></div>
+                                <div class="mt-2">No Bill Accounts: <strong>0</strong></div>
+                                <div class="mt-2">Unpaid Accounts:</div>
+                                <div style="padding-left: 10px;">• 1-Month: <strong>0</strong></div>
+                                <div style="padding-left: 10px;">• 2+ Months: <strong>0</strong></div>
+                                <div class="mt-2" style="font-size: 11px !important;">% Breakdown:</div>
+                                <div style="font-size: 11px !important; color:#475569;">
+                                    * Fully Paid: 0%<br>
+                                    * Partially Paid: 0%<br>
+                                    * No Bill: 0%<br>
+                                    * 1-Month: 0%<br>
+                                    * 2+ Months: 0%
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: bold;">DN/ODAA STATUS</td>
+                            <td>
+                                <div>Delivered DN/ODAA: <strong>0</strong></div>
+                                <div>Pending DN/ODAA: <strong>0</strong></div>
+                            </td>
+                            <td>
+                                <div>Delivered DN/ODAA: <strong>0</strong></div>
+                                <div>Pending DN/ODAA: <strong>0</strong></div>
+                            </td>
+                            <td>
+                                <div>Delivered DN/ODAA: <strong>0</strong></div>
+                                <div>Pending DN/ODAA: <strong>0</strong></div>
+                            </td>
+                            <td>
+                                <div>Delivered DN/ODAA: <strong>0</strong></div>
+                                <div>Pending DN/ODAA: <strong>0</strong></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: bold;">JOB-ORDER</td>
+                            <td>
+                                <div>Served (Tendered): <strong>0</strong></div>
+                                <div>Disconnected: <strong>0</strong></div>
+                                <div>Pending: <strong>0</strong></div>
+                            </td>
+                            <td>
+                                <div>Served (Tendered): <strong>0</strong></div>
+                                <div>Disconnected: <strong>0</strong></div>
+                                <div>Pending: <strong>0</strong></div>
+                            </td>
+                            <td>
+                                <div>Served (Tendered): <strong>0</strong></div>
+                                <div>Disconnected: <strong>0</strong></div>
+                                <div>Pending: <strong>0</strong></div>
+                            </td>
+                            <td>
+                                <div>Served (Tendered): <strong>0</strong></div>
+                                <div>Disconnected: <strong>0</strong></div>
+                                <div>Pending: <strong>0</strong></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: bold;">KEY ACCOUNTS SETTLED</td>
+                            <td><p style="font-size: 11px !important; color: #475569;">(No records loaded)</p></td>
+                            <td><p style="font-size: 11px !important; color: #475569;">(No records loaded)</p></td>
+                            <td><p style="font-size: 11px !important; color: #475569;">(No records loaded)</p></td>
+                            <td><p style="font-size: 11px !important; color: #475569;">(No records loaded)</p></td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: bold;">ADD. REMARKS</td>
+                            <td>Job Order to be endorsed to DSD-CAS</td>
+                            <td>Job Order to be endorsed to DSD-CAS</td>
+                            <td>Job Order to be endorsed to DSD-CAS</td>
+                            <td>Job Order to be endorsed to DSD-CAS</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>&nbsp;</p>
+                <p style="font-weight: bold; font-size: 13pt !important; border-bottom: 2px solid #1e293b; padding-bottom: 4px;">TOTAL COLLECTION SUMMARY</p>
+                <p>Total Accounts monitored: <strong id="canvasTotalAccounts">0</strong></p>
+                <p>Overall % Breakdown:</p>
+                <ul style="list-style-type: square; padding-left: 20px;">
+                    <li>Fully Paid Accounts: <strong id="summaryFullyPaid">0 (0.00%)</strong></li>
+                    <li>With Partial Payment: <strong id="summaryPartiallyPaid">0 (0.00%)</strong></li>
+                    <li>No Bill: <strong id="summaryNoBill">0 (0.00%)</strong></li>
+                    <li>With 1-Month Balance: <strong id="summaryOneMonth">0 (0.00%)</strong></li>
+                    <li>With 2+ Months Balance: <strong id="summaryMultiMonth">0 (0.00%)</strong></li>
+                </ul>
+
+                <p>&nbsp;</p>
+                <p style="font-weight: bold; font-size: 13pt !important; border-bottom: 2px solid #1e293b; padding-bottom: 4px;" class="no-print">COLLECTION PERFORMANCE VISUALIZATIONS</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-4 no-print" contenteditable="false">
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <h4 class="text-xs font-bold text-center text-slate-700 uppercase tracking-wide mb-2">Overall Accounts Combined Breakdown</h4>
+                        <div class="relative h-64 w-full flex items-center justify-center">
+                            <canvas id="overallCombinedChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <h4 class="text-xs font-bold text-center text-slate-700 uppercase tracking-wide mb-2">Breakdown By Customer Segment Category</h4>
+                        <div class="relative h-64 w-full flex items-center justify-center">
+                            <canvas id="categorySegmentChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <p>&nbsp;</p>
+                <p style="font-weight: bold; font-size: 13pt !important; border-bottom: 2px solid #1e293b; padding-bottom: 4px;">DAILY TASK PROGRESSION, ACCOMPLISHMENT & SCHEDULED TASKS</p>
+                <div id="canvasTaskProgression" class="space-y-3">
+                    <p class="text-slate-500 italic">Please select month and year to build calendar tasks automatically.</p>
+                </div>
+
+                <p>&nbsp;</p>
+                <p style="font-weight: bold; font-size: 13pt !important; border-bottom: 2px solid #1e293b; padding-bottom: 4px;">OVER-ALL JOB-ORDER PROGRESS</p>
+                <p>No account disconnected, all Job-orders tagged as tendered payment.</p>
+                <p>Disconnection will follow for accounts tendered without payment.</p>
+
+                <p>&nbsp;</p>
+                <p>Please see the attached Excel file for the full monitoring details. Thank you.</p>
+                <p>Regards,</p>
+                <p><strong><span id="canvasPreparer">John</span></strong></p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Custom alert container wrapper -->
+    <div id="customAlert" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50 hidden no-print">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 mx-4">
+            <h4 class="font-bold text-lg text-slate-900 mb-2" id="alertTitle">System Alert</h4>
+            <p class="text-sm text-slate-600 mb-4" id="alertMessage"></p>
+            <div class="text-right">
+                <button id="alertBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded">
+                    Okay
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State storage for spreadsheet parsing
+        let excelRawData = [];
+        let sheetNames = [];
+        let currentSheet = "";
+        let columnsMapping = {
+            name: "",
+            category: "",
+            billing: "", 
+            paymentStatus: "",
+            monthsUnpaid: "",
+            disconnection: "",
+            jobOrder: "",
+            balance: "",
+            dnOdaa: "" 
+        };
+
+        let overallPieChartInstance = null;
+        let segmentChartInstance = null;
+
+        // Static configuration of calendar events based on Cagayan de Oro weather/work cycles
+        const weeklyTaskTemplates = {
+            W1: [
+                "Heavy rain experienced during first week or high field moisture",
+                "LGU and Brgy Billing preparation (Complete)",
+                "Updating of Excel Masterlist",
+                "Delivery of PHIVIDEC and Barangay Billing",
+                "Pick-up Payment Z-ice",
+                "Side Tasks: Deposit of Check at BPI Puerto Branch (Mactan Rock payment)",
+                "Delivery of Line extension Advances Check Refunds"
+            ],
+            W2: [
+                "Partial delivery of accounts due on standard cycle",
+                "Updating of Excel Masterlist (Continuation)",
+                "Delivery of Line extension Advances Check Refunds (Continuation)",
+                "Preparation of Disconnection Notice",
+                "Delivery of Disconnection Notice",
+                "Preparation of Collection Report",
+                "Text-blast and Email follow-ups to all accounts monitored"
+            ],
+            W3: [
+                "Availed partial rest days / family activities coordination",
+                "Preparation of Disconnection Notice (New batch due on 3rd week)",
+                "Delivery of Disconnection Notice (Continuation)",
+                "Delivery of Line extension Advances Check Refunds (Continuation)",
+                "Delivery of checks for Mercury Drug Corp",
+                "Text-blast and Email follow-ups to all monitored accounts"
+            ],
+            W4: [
+                "End of Month coordination & Post-rest/dental alignments",
+                "Updating of Excel Masterlist & Final matching",
+                "Delivery of Job-orders (Tender Payment option explanation)",
+                "Text-blast and Email follow-ups to outstanding balances",
+                "Preparation of monthly Summary Collection Report"
+            ],
+            W5: [
+                "Final settlement collection run",
+                "Filing status updates with DSD-CAS for chronic overdue accounts",
+                "Rollover of outstanding amounts to next billing month pipeline"
+            ]
+        };
+
+        // Utility: custom popup instead of browser alerts
+        function showMessage(title, message) {
+            document.getElementById('alertTitle').textContent = title;
+            document.getElementById('alertMessage').textContent = message;
+            document.getElementById('customAlert').classList.remove('hidden');
+        }
+
+        document.getElementById('alertBtn').addEventListener('click', () => {
+            document.getElementById('customAlert').classList.add('hidden');
+        });
+
+        // Initialize events on load
+        window.addEventListener('DOMContentLoaded', () => {
+            setupFileHandlers();
+            setupFormListeners();
+            calculateCalendarWeeks();
+        });
+
+        function setupFileHandlers() {
+            const fileInput = document.getElementById('excelFile');
+            fileInput.addEventListener('change', handleFileSelect);
+
+            const sheetSelect = document.getElementById('sheetSelect');
+            sheetSelect.addEventListener('change', (e) => {
+                currentSheet = e.target.value;
+                parseSelectedSheet();
+            });
+        }
+
+        function setupFormListeners() {
+            document.getElementById('reportMonth').addEventListener('change', () => {
+                calculateCalendarWeeks();
+                generateReportUI();
+            });
+            document.getElementById('reportYear').addEventListener('change', () => {
+                calculateCalendarWeeks();
+                generateReportUI();
+            });
+            document.getElementById('weekScope').addEventListener('change', () => {
+                calculateCalendarWeeks();
+                generateReportUI();
+            });
+            document.getElementById('preparerName').addEventListener('input', (e) => {
+                document.getElementById('canvasPreparer').textContent = e.target.value || "John";
+            });
+            document.getElementById('recipientName').addEventListener('input', () => {
+                generateReportUI(); 
+            });
+
+            document.getElementById('btnGenerate').addEventListener('click', () => {
+                generateReportUI();
+                if (excelRawData.length) {
+                    showMessage("Success", "Report automatically re-generated from the loaded sheet data.");
+                }
+            });
+
+            document.getElementById('btnPrint').addEventListener('click', () => {
+                window.print();
+            });
+
+            document.getElementById('btnPDF').addEventListener('click', saveAsPDFDocument);
+            document.getElementById('btnCopyText').addEventListener('click', copyReportAsPlainText);
+            document.getElementById('btnExportWord').addEventListener('click', exportWordDocument);
+        }
+
+        function calculateCalendarWeeks() {
+            const year = parseInt(document.getElementById('reportYear').value);
+            const monthIdx = parseInt(document.getElementById('reportMonth').value) - 1; 
+
+            const monthNames = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
+            const currentMonthName = monthNames[monthIdx];
+            const totalDays = new Date(year, monthIdx + 1, 0).getDate();
+
+            const dateRanges = {
+                1: `1–7`,
+                2: `8–14`,
+                3: `15–21`,
+                4: `22–28`,
+                5: totalDays > 28 ? `29–${totalDays}` : ""
+            };
+
+            const targetDiv = document.getElementById('canvasTaskProgression');
+            targetDiv.innerHTML = ""; 
+
+            const scope = document.getElementById('weekScope').value;
+
+            const addWeekBlock = (weekNum, dateRange, tasks) => {
+                if (!dateRange) return; 
+
+                const pHeader = document.createElement('p');
+                pHeader.className = "font-bold text-slate-800 mt-2";
+                pHeader.innerHTML = `${currentMonthName} ${dateRange} (${weekNum}${getOrdinal(weekNum)} Week):`;
+                
+                const ul = document.createElement('ul');
+                ul.style.listStyleType = "circle";
+                ul.style.paddingLeft = "20px";
+                ul.style.marginBottom = "10px";
+
+                tasks.forEach(task => {
+                    const li = document.createElement('li');
+                    li.textContent = task;
+                    ul.appendChild(li);
+                });
+
+                targetDiv.appendChild(pHeader);
+                targetDiv.appendChild(ul);
+            };
+
+            let selectedWeeks = [];
+            if (scope === "all") {
+                selectedWeeks = [1, 2, 3, 4];
+                if (totalDays > 28) selectedWeeks.push(5);
+            } else if (scope.includes("-")) {
+                const parts = scope.split("-");
+                const start = parseInt(parts[0]);
+                const end = parseInt(parts[1]);
+                for (let w = start; w <= end; w++) {
+                    selectedWeeks.push(w);
+                }
+            } else {
+                selectedWeeks.push(parseInt(scope));
+            }
+
+            selectedWeeks.forEach(w => {
+                if (w === 1) addWeekBlock(1, dateRanges[1], weeklyTaskTemplates.W1);
+                if (w === 2) addWeekBlock(2, dateRanges[2], weeklyTaskTemplates.W2);
+                if (w === 3) addWeekBlock(3, dateRanges[3], weeklyTaskTemplates.W3);
+                if (w === 4) addWeekBlock(4, dateRanges[4], weeklyTaskTemplates.W4);
+                if (w === 5 && dateRanges[5] !== "") addWeekBlock(5, dateRanges[5], weeklyTaskTemplates.W5);
+            });
+
+            let displayWeeks = `${currentMonthName} ${year}`;
+            if (scope !== "all") {
+                if (scope.includes("-")) {
+                    const parts = scope.split("-");
+                    displayWeeks += ` - Week ${parts[0]}–${parts[1]}`;
+                } else {
+                    displayWeeks += ` - Week ${scope}`;
+                }
+            } else {
+                displayWeeks += " - Full Month Progress";
+            }
+            document.getElementById('canvasSubTitle').textContent = displayWeeks;
+        }
+
+        function getOrdinal(n) {
+            let s = ["th", "st", "nd", "rd"],
+                v = parseInt(n) % 100;
+            return s[(v - 20) % 10] || s[v] || s[0];
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('loadedFileName').textContent = file.name;
+            document.getElementById('fileInfo').classList.remove('hidden');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                sheetNames = workbook.SheetNames;
+                currentSheet = sheetNames[0];
+
+                const select = document.getElementById('sheetSelect');
+                select.innerHTML = "";
+                sheetNames.forEach(sheet => {
+                    const opt = document.createElement('option');
+                    opt.value = sheet;
+                    opt.textContent = sheet;
+                    select.appendChild(opt);
+                });
+
+                window.loadedWorkbook = workbook;
+                parseSelectedSheet();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function parseSelectedSheet() {
+            const workbook = window.loadedWorkbook;
+            if (!workbook) return;
+
+            const worksheet = workbook.Sheets[currentSheet];
+            const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            
+            if (rawJson.length === 0) {
+                showMessage("No Data Found", "The selected sheet appears to be empty.");
+                return;
+            }
+
+            excelRawData = rawJson;
+            detectExcelHeaders(rawJson[0]);
+            generateReportUI();
+        }
+
+        function detectExcelHeaders(sampleRow) {
+            const keys = Object.keys(sampleRow);
+            const mappingList = document.getElementById('mappingStatus');
+            mappingList.innerHTML = "";
+
+            columnsMapping = {
+                name: "",
+                category: "",
+                billing: "", 
+                paymentStatus: "",
+                monthsUnpaid: "",
+                disconnection: "",
+                jobOrder: "",
+                balance: "",
+                dnOdaa: ""
+            };
+
+            keys.forEach(k => {
+                const cleanK = k.toString().toLowerCase().trim();
+                
+                if (cleanK.includes("account name") || cleanK.includes("acct name") || cleanK.includes("name")) {
+                    if(!columnsMapping.name) columnsMapping.name = k;
+                }
+                if (cleanK.includes("category") || cleanK.includes("cat") || cleanK.includes("type")) {
+                    if(!columnsMapping.category) columnsMapping.category = k;
+                }
+                if (cleanK.includes("billing") || cleanK.includes("bill")) {
+                    if(!columnsMapping.billing) columnsMapping.billing = k;
+                }
+                if (cleanK.includes("payment status") || cleanK.includes("status") || cleanK.includes("pay status")) {
+                    if(!columnsMapping.paymentStatus) columnsMapping.paymentStatus = k;
+                }
+                if (cleanK.includes("months unpaid") || cleanK.includes("month's unpaid") || cleanK.includes("unpaid months") || cleanK.includes("month unpaid")) {
+                    if(!columnsMapping.monthsUnpaid) columnsMapping.monthsUnpaid = k;
+                }
+                if (cleanK.includes("disconnection") || cleanK.includes("disc notice") || cleanK.includes("notice status")) {
+                    if(!columnsMapping.disconnection) columnsMapping.disconnection = k;
+                }
+                if (cleanK.includes("job order") || cleanK.includes("jo status") || cleanK.includes("job-order")) {
+                    if(!columnsMapping.jobOrder) columnsMapping.jobOrder = k;
+                }
+                if (cleanK.includes("amount due") || cleanK.includes("balance") || cleanK.includes("outstanding") || cleanK.includes("amount")) {
+                    if(!columnsMapping.balance) columnsMapping.balance = k;
+                }
+                if (cleanK.includes("dn") || cleanK.includes("odaa") || cleanK.includes("remarks")) {
+                    if(!columnsMapping.dnOdaa) columnsMapping.dnOdaa = k;
+                }
+            });
+
+            const rb = keys.find(k => k.toString().toLowerCase().trim() === "remaining balance"); if (rb) columnsMapping.balance = rb;
+            // Backups
+            if (!columnsMapping.name && keys.length > 0) columnsMapping.name = keys[0];
+            if (!columnsMapping.category && keys.length > 1) columnsMapping.category = keys[1];
+            if (!columnsMapping.billing && keys.length > 2) columnsMapping.billing = keys[2];
+            if (!columnsMapping.balance && keys.length > 3) columnsMapping.balance = keys[3];
+            if (!columnsMapping.dnOdaa && keys.length > 4) columnsMapping.dnOdaa = keys[4];
+
+            for (let targetField in columnsMapping) {
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center bg-slate-50 p-1.5 rounded border border-slate-100";
+                
+                const labelSpan = document.createElement('span');
+                labelSpan.className = "font-semibold text-slate-700 capitalize";
+                labelSpan.textContent = targetField.replace(/([A-Z])/g, ' $1');
+
+                const valSpan = document.createElement('span');
+                if (columnsMapping[targetField]) {
+                    valSpan.className = "bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-[10px] font-mono";
+                    valSpan.textContent = columnsMapping[targetField];
+                } else {
+                    valSpan.className = "bg-rose-100 text-rose-800 px-1.5 py-0.5 rounded text-[10px] font-mono";
+                    valSpan.textContent = "Not Detected";
+                }
+
+                div.appendChild(labelSpan);
+                div.appendChild(valSpan);
+                mappingList.appendChild(div);
+            }
+        }
+
+        function generateReportUI() {
+            const monthNames = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
+            
+            const monthVal = parseInt(document.getElementById('reportMonth').value);
+            const yearVal = document.getElementById('reportYear').value;
+            const scopeVal = document.getElementById('weekScope').value;
+            const preparer = document.getElementById('preparerName').value || "John";
+            const recipient = document.getElementById('recipientName').value || "Sir Jun";
+
+            let scopeStr = "";
+            if (scopeVal === "all") {
+                scopeStr = "Full Month Progress";
+            } else if (scopeVal.includes("-")) {
+                const parts = scopeVal.split("-");
+                scopeStr = `Week ${parts[0]}–${parts[1]}`;
+            } else {
+                scopeStr = `Week ${scopeVal}`;
+            }
+
+            const monthName = monthNames[monthVal - 1];
+            const fullPeriodTitle = `${monthName} ${yearVal} (${scopeStr})`;
+
+            // Initialize counter schema
+            const initCategoryCounters = () => ({
+                fullyPaid: 0,
+                fullyPaidNames: [],
+                partiallyPaid: 0,
+                partiallyPaidNames: [],
+                noBill: 0,
+                oneMonthUnpaid: 0,
+                multiMonthUnpaid: 0,
+                discServed: 0,
+                discPending: 0,
+                joServed: 0,
+                joDisconnected: 0,
+                joPending: 0,
+                total: 0
+            });
+
+            const categories = {
+                POWER: initCategoryCounters(),
+                SCHOOLS: initCategoryCounters(),
+                STREETLIGHTS: initCategoryCounters(),
+                "NET METERING": initCategoryCounters()
+            };
+
+            let grandTotalAccounts = 0;
+
+            // Parse each record row with the strict custom criteria rules requested
+            excelRawData.forEach(row => {
+                let name = (row[columnsMapping.name] || "").toString().trim();
+                let categoryRaw = (row[columnsMapping.category] || "").toString().toUpperCase().trim();
+                let billingRaw = (row[columnsMapping.billing] || "").toString().toUpperCase().trim();
+                let statusRaw = (row[columnsMapping.paymentStatus] || "").toString().toLowerCase().trim();
+                let dnOdaaValue = (row[columnsMapping.dnOdaa] || "").toString().toUpperCase().trim();
+                let monthsUnpaidRaw = row[columnsMapping.monthsUnpaid];
+                let discRaw = (row[columnsMapping.disconnection] || "").toString().toLowerCase().trim();
+                let joRaw = (row[columnsMapping.jobOrder] || "").toString().toLowerCase().trim();
+
+                // Standardize category column value matching
+                let catMatch = "POWER";
+                if (categoryRaw.includes("SCHOOL")) catMatch = "SCHOOLS";
+                else if (categoryRaw.includes("STREET") || categoryRaw.includes("LIGHT") || categoryRaw.includes("STL")) catMatch = "STREETLIGHTS";
+                else if (categoryRaw.includes("NET") || categoryRaw.includes("METER")) catMatch = "NET METERING";
+                
+                let targetCat = categories[catMatch];
+                targetCat.total++;
+                grandTotalAccounts++;
+
+                // Evaluation of Blank/Zero criteria
+                let isBalanceBlank = (row[columnsMapping.balance] === undefined || row[columnsMapping.balance] === null || row[columnsMapping.balance].toString().trim() === "");
+                let containsPartial = dnOdaaValue.includes("PARTIAL") || statusRaw.includes("partial");
+
+                // Strictly evaluate Billing for "NO BILL" first
+                if (billingRaw === "NO BILL") {
+                    targetCat.noBill++;
+                } 
+                // Fully Paid constraints (Billing NOT "NO BILL" AND Balance cell is strictly empty/blank AND DN/ODAA does not contain partial)
+                else if (billingRaw !== "NO BILL" && isBalanceBlank && !containsPartial) {
+                    targetCat.fullyPaid++;
+                    if (name) targetCat.fullyPaidNames.push(name);
+                } 
+                // Partially Paid constraints
+                else if (containsPartial) {
+                    targetCat.partiallyPaid++;
+                    if (name) targetCat.partiallyPaidNames.push(name);
+                } 
+                // Outstanding categorizations
+                else {
+                    let unpaidMonthsCount = 0;
+                    if (monthsUnpaidRaw !== undefined && monthsUnpaidRaw !== null) {
+                        let parsed = parseInt(monthsUnpaidRaw);
+                        if (!isNaN(parsed)) unpaidMonthsCount = parsed;
+                    }
+
+                    if (unpaidMonthsCount === 1 || statusRaw.includes("1-month") || statusRaw.includes("1 month")) {
+                        targetCat.oneMonthUnpaid++;
+                    } else if (unpaidMonthsCount >= 2 || statusRaw.includes("2+") || statusRaw.includes("2 or more") || statusRaw.includes("multi")) {
+                        targetCat.multiMonthUnpaid++;
+                    } else {
+                        targetCat.oneMonthUnpaid++;
+                    }
+                }
+
+                // Disconnection Notice rules
+                // OK -> Delivered, GEN -> Pending
+                if (dnOdaaValue.includes("OK") || statusRaw.includes("ok")) {
+                    targetCat.discServed++;
+                } else if (dnOdaaValue.includes("GEN") || statusRaw.includes("gen")) {
+                    targetCat.discPending++;
+                }
+
+                // Job order parsing rules
+                // OK -> Served, DISCONNECT -> Disconnected, GEN -> Pending
+                if (joRaw.includes("ok")) {
+                    targetCat.joServed++;
+                } else if (joRaw.includes("disconnect")) {
+                    targetCat.joDisconnected++;
+                } else if (joRaw.includes("gen")) {
+                    targetCat.joPending++;
+                }
+            });
+
+            const hasData = excelRawData.length > 0;
+
+            if (!hasData) {
+                showMessage("No Masterlist Loaded", "Upload and select an Excel masterlist before generating a report. Nothing has been generated.");
+                document.getElementById('reportContent').innerHTML = `
+                    <div style="text-align:center; padding: 40px 10px; color:#64748b;">
+                        <p style="font-weight:bold; font-size:13pt !important;">No masterlist loaded yet.</p>
+                        <p>Upload an .xlsx/.xlsm file in Step 1 to generate a real report. No sample or placeholder data will be shown here.</p>
+                    </div>`;
+                if (overallPieChartInstance) { overallPieChartInstance.destroy(); overallPieChartInstance = null; }
+                if (segmentChartInstance) { segmentChartInstance.destroy(); segmentChartInstance = null; }
+                return;
+            }
+
+            let totalPower = categories.POWER.total;
+            let totalSchools = categories.SCHOOLS.total;
+            let totalStreetlights = categories.STREETLIGHTS.total;
+            let totalNetMetering = categories["NET METERING"].total;
+
+            let reportData = {
+                POWER: {
+                    fp: categories.POWER.fullyPaid,
+                    pp: categories.POWER.partiallyPaid,
+                    nb: categories.POWER.noBill,
+                    u1: categories.POWER.oneMonthUnpaid,
+                    u2: categories.POWER.multiMonthUnpaid,
+                    fpNames: categories.POWER.fullyPaidNames,
+                    ppNames: categories.POWER.partiallyPaidNames,
+                    discS: categories.POWER.discServed,
+                    discP: categories.POWER.discPending,
+                    joS: categories.POWER.joServed,
+                    joD: categories.POWER.joDisconnected,
+                    joP: categories.POWER.joPending,
+                    total: totalPower
+                },
+                SCHOOLS: {
+                    fp: categories.SCHOOLS.fullyPaid,
+                    pp: categories.SCHOOLS.partiallyPaid,
+                    nb: categories.SCHOOLS.noBill,
+                    u1: categories.SCHOOLS.oneMonthUnpaid,
+                    u2: categories.SCHOOLS.multiMonthUnpaid,
+                    fpNames: categories.SCHOOLS.fullyPaidNames,
+                    ppNames: categories.SCHOOLS.partiallyPaidNames,
+                    discS: categories.SCHOOLS.discServed,
+                    discP: categories.SCHOOLS.discPending,
+                    joS: categories.SCHOOLS.joServed,
+                    joD: categories.SCHOOLS.joDisconnected,
+                    joP: categories.SCHOOLS.joPending,
+                    total: totalSchools
+                },
+                STREETLIGHTS: {
+                    fp: categories.STREETLIGHTS.fullyPaid,
+                    pp: categories.STREETLIGHTS.partiallyPaid,
+                    nb: categories.STREETLIGHTS.noBill,
+                    u1: categories.STREETLIGHTS.oneMonthUnpaid,
+                    u2: categories.STREETLIGHTS.multiMonthUnpaid,
+                    fpNames: categories.STREETLIGHTS.fullyPaidNames,
+                    ppNames: categories.STREETLIGHTS.partiallyPaidNames,
+                    discS: categories.STREETLIGHTS.discServed,
+                    discP: categories.STREETLIGHTS.discPending,
+                    joS: categories.STREETLIGHTS.joServed,
+                    joD: categories.STREETLIGHTS.joDisconnected,
+                    joP: categories.STREETLIGHTS.joPending,
+                    total: totalStreetlights
+                },
+                NET_METERING: {
+                    fp: categories["NET METERING"].fullyPaid,
+                    pp: categories["NET METERING"].partiallyPaid,
+                    nb: categories["NET METERING"].noBill,
+                    u1: categories["NET METERING"].oneMonthUnpaid,
+                    u2: categories["NET METERING"].multiMonthUnpaid,
+                    fpNames: categories["NET METERING"].fullyPaidNames,
+                    ppNames: categories["NET METERING"].partiallyPaidNames,
+                    discS: categories["NET METERING"].discServed,
+                    discP: categories["NET METERING"].discPending,
+                    joS: categories["NET METERING"].joServed,
+                    joD: categories["NET METERING"].joDisconnected,
+                    joP: categories["NET METERING"].joPending,
+                    total: totalNetMetering
+                }
+            };
+
+            const getPercent = (value, total) => {
+                if (total === 0) return "0.00%";
+                return ((value / total) * 100).toFixed(2) + "%";
+            };
+
+            const dbgDiv = document.getElementById('dataSummaryStats');
+            if (hasData) {
+                dbgDiv.innerHTML = `
+                    <strong>Parsed Sheet Records:</strong> ${excelRawData.length} entries detected.<br>
+                    <strong>Power Cat Count:</strong> Fully Paid: ${reportData.POWER.fp}, Partial: ${reportData.POWER.pp}, No Bill: ${reportData.POWER.nb}, 1mo: ${reportData.POWER.u1}, 2mo+: ${reportData.POWER.u2}<br>
+                    <strong>Schools Cat Count:</strong> Fully Paid: ${reportData.SCHOOLS.fp}, Partial: ${reportData.SCHOOLS.pp}, No Bill: ${reportData.SCHOOLS.nb}, 1mo: ${reportData.SCHOOLS.u1}, 2mo+: ${reportData.SCHOOLS.u2}<br>
+                    <strong>Streetlights Cat Count:</strong> Fully Paid: ${reportData.STREETLIGHTS.fp}, Partial: ${reportData.STREETLIGHTS.pp}, No Bill: ${reportData.STREETLIGHTS.nb}, 1mo: ${reportData.STREETLIGHTS.u1}, 2mo+: ${reportData.STREETLIGHTS.u2}<br>
+                    <strong>Net Metering Cat Count:</strong> Fully Paid: ${reportData.NET_METERING.fp}, Partial: ${reportData.NET_METERING.pp}, No Bill: ${reportData.NET_METERING.nb}, 1mo: ${reportData.NET_METERING.u1}, 2mo+: ${reportData.NET_METERING.u2}
+                `;
+            }
+
+            let overallTotal = reportData.POWER.total + reportData.SCHOOLS.total + reportData.STREETLIGHTS.total + reportData.NET_METERING.total;
+            let overallFP = reportData.POWER.fp + reportData.SCHOOLS.fp + reportData.STREETLIGHTS.fp + reportData.NET_METERING.fp;
+            let overallPP = reportData.POWER.pp + reportData.SCHOOLS.pp + reportData.STREETLIGHTS.pp + reportData.NET_METERING.pp;
+            let overallNB = reportData.POWER.nb + reportData.SCHOOLS.nb + reportData.STREETLIGHTS.nb + reportData.NET_METERING.nb;
+            let overallU1 = reportData.POWER.u1 + reportData.SCHOOLS.u1 + reportData.STREETLIGHTS.u1 + reportData.NET_METERING.u1;
+            let overallU2 = reportData.POWER.u2 + reportData.SCHOOLS.u2 + reportData.STREETLIGHTS.u2 + reportData.NET_METERING.u2;
+
+            const content = document.getElementById('reportContent');
+            content.innerHTML = `
+                <p>Hi ${recipient},</p>
+                <p>Good day.</p>
+                <p>Please see the Collection Monitoring Update for <strong>${fullPeriodTitle}</strong>, summarizing the current collection performance, collection efforts, and overall task progress.</p>
+                <p>Please refer to the summary table below for details.</p>
+                
+                <p>&nbsp;</p>
+                <p style="text-align: center; font-weight: bold; font-size: 14pt !important; margin-bottom: 2px;">COLLECTION MONITORING UPDATE</p>
+                <p style="text-align: center; margin-bottom: 20px;" id="canvasSubTitle">${fullPeriodTitle}</p>
+
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 20%;">CATEGORY</th>
+                            <th style="width: 20%;">POWER</th>
+                            <th style="width: 20%;">SCHOOLS</th>
+                            <th style="width: 20%;">STREETLIGHTS</th>
+                            <th style="width: 20%;">NET METERING</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="font-weight: bold;">PAYMENT STATUS</td>
+                            <td>
+                                <div>Fully Paid Accounts: <strong>${reportData.POWER.fp}</strong></div>
+                                <div style="color: #64748b; font-size: 11px !important;">(Evaluated via Column M Blank rule)</div>
+                                <div class="mt-2">Partially Paid: <strong>${reportData.POWER.pp}</strong></div>
+                                
+                                ${reportData.POWER.ppNames && reportData.POWER.ppNames.length > 0 ? `
+                                <div style="font-size: 11px !important; color: #1e3a8a; background-color: #eff6ff; padding: 4px; border-radius: 4px; margin-top: 4px;">
+                                    <strong>Partials List:</strong>
+                                    <ul style="margin: 0; padding-left: 14px;">
+                                        ${reportData.POWER.ppNames.map(n => `<li>${n}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                ` : ""}
+
+                                <div class="mt-2">No Bill Accounts: <strong>${reportData.POWER.nb}</strong></div>
+                                <div class="mt-2">Unpaid Accounts:</div>
+                                <div style="padding-left: 10px;">• 1-Month: <strong>${reportData.POWER.u1}</strong></div>
+                                <div style="padding-left: 10px;">• 2+ Months: <strong>${reportData.POWER.u2}</strong></div>
+                                <div class="mt-2" style="font-size: 11px !important; font-weight: bold;">% Breakdown:</div>
+                                <div style="font-size: 11px !important; color:#475569;">
+                                    * Fully Paid: ${getPercent(reportData.POWER.fp, reportData.POWER.total)}<br>
+                                    * Partially Paid: ${getPercent(reportData.POWER.pp, reportData.POWER.total)}<br>
+                                    * No Bill: ${getPercent(reportData.POWER.nb, reportData.POWER.total)}<br>
+                                    * 1-Month: ${getPercent(reportData.POWER.u1, reportData.POWER.total)}<br>
+                                    * 2+ Months: ${getPercent(reportData.POWER.u2, reportData.POWER.total)}
+                                </div>
+                            </td>
+                            <td>
+                                <div>Fully Paid Accounts: <strong>${reportData.SCHOOLS.fp}</strong></div>
+                                <div class="mt-2">Partially Paid: <strong>${reportData.SCHOOLS.pp}</strong></div>
+                                
+                                ${reportData.SCHOOLS.ppNames && reportData.SCHOOLS.ppNames.length > 0 ? `
+                                <div style="font-size: 11px !important; color: #1e3a8a; background-color: #eff6ff; padding: 4px; border-radius: 4px; margin-top: 4px;">
+                                    <strong>Partials List:</strong>
+                                    <ul style="margin: 0; padding-left: 14px;">
+                                        ${reportData.SCHOOLS.ppNames.map(n => `<li>${n}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                ` : ""}
+
+                                <div class="mt-2">No Bill Accounts: <strong>${reportData.SCHOOLS.nb}</strong></div>
+                                <div class="mt-2">Unpaid Accounts:</div>
+                                <div style="padding-left: 10px;">• 1-Month: <strong>${reportData.SCHOOLS.u1}</strong></div>
+                                <div style="padding-left: 10px;">• 2+ Months: <strong>${reportData.SCHOOLS.u2}</strong></div>
+                                <div class="mt-2" style="font-size: 11px !important; font-weight: bold;">% Breakdown:</div>
+                                <div style="font-size: 11px !important; color:#475569;">
+                                    * Fully Paid: ${getPercent(reportData.SCHOOLS.fp, reportData.SCHOOLS.total)}<br>
+                                    * Partially Paid: ${getPercent(reportData.SCHOOLS.pp, reportData.SCHOOLS.total)}<br>
+                                    * No Bill: ${getPercent(reportData.SCHOOLS.nb, reportData.SCHOOLS.total)}<br>
+                                    * 1-Month: ${getPercent(reportData.SCHOOLS.u1, reportData.SCHOOLS.total)}<br>
+                                    * 2+ Months: ${getPercent(reportData.SCHOOLS.u2, reportData.SCHOOLS.total)}
+                                </div>
+                            </td>
+                            <td>
+                                <div>Fully Paid Accounts: <strong>${reportData.STREETLIGHTS.fp}</strong></div>
+                                <div class="mt-2">Partially Paid: <strong>${reportData.STREETLIGHTS.pp}</strong></div>
+                                
+                                ${reportData.STREETLIGHTS.ppNames && reportData.STREETLIGHTS.ppNames.length > 0 ? `
+                                <div style="font-size: 11px !important; color: #1e3a8a; background-color: #eff6ff; padding: 4px; border-radius: 4px; margin-top: 4px;">
+                                    <strong>Partials List:</strong>
+                                    <ul style="margin: 0; padding-left: 14px;">
+                                        ${reportData.STREETLIGHTS.ppNames.map(n => `<li>${n}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                ` : ""}
+
+                                <div class="mt-2">No Bill Accounts: <strong>${reportData.STREETLIGHTS.nb}</strong></div>
+                                <div class="mt-2">Unpaid Accounts:</div>
+                                <div style="padding-left: 10px;">• 1-Month: <strong>${reportData.STREETLIGHTS.u1}</strong></div>
+                                <div style="padding-left: 10px;">• 2+ Months: <strong>${reportData.STREETLIGHTS.u2}</strong></div>
+                                <div class="mt-2" style="font-size: 11px !important; font-weight: bold;">% Breakdown:</div>
+                                <div style="font-size: 11px !important; color:#475569;">
+                                    * Fully Paid: ${getPercent(reportData.STREETLIGHTS.fp, reportData.STREETLIGHTS.total)}<br>
+                                    * Partially Paid: ${getPercent(reportData.STREETLIGHTS.pp, reportData.STREETLIGHTS.total)}<br>
+                                    * No Bill: ${getPercent(reportData.STREETLIGHTS.nb, reportData.STREETLIGHTS.total)}<br>
+                                    * 1-Month: ${getPercent(reportData.STREETLIGHTS.u1, reportData.STREETLIGHTS.total)}<br>
+                                    * 2+ Months: ${getPercent(reportData.STREETLIGHTS.u2, reportData.STREETLIGHTS.total)}
+                                </div>
+                            </td>
+                            <td>
+                                <div>Fully Paid Accounts: <strong>${reportData.NET_METERING.fp}</strong></div>
+                                <div class="mt-2">Partially Paid: <strong>${reportData.NET_METERING.pp}</strong></div>
+                                
+                                ${reportData.NET_METERING.ppNames && reportData.NET_METERING.ppNames.length > 0 ? `
+                                <div style="font-size: 11px !important; color: #1e3a8a; background-color: #eff6ff; padding: 4px; border-radius: 4px; margin-top: 4px;">
+                                    <strong>Partials List:</strong>
+                                    <ul style="margin: 0; padding-left: 14px;">
+                                        ${reportData.NET_METERING.ppNames.map(n => `<li>${n}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                ` : ""}
+
+                                <div class="mt-2">No Bill Accounts: <strong>${reportData.NET_METERING.nb}</strong></div>
+                                <div class="mt-2">Unpaid Accounts:</div>
+                                <div style="padding-left: 10px;">• 1-Month: <strong>${reportData.NET_METERING.u1}</strong></div>
+                                <div style="padding-left: 10px;">• 2+ Months: <strong>${reportData.NET_METERING.u2}</strong></div>
+                                <div class="mt-2" style="font-size: 11px !important; font-weight: bold;">% Breakdown:</div>
+                                <div style="font-size: 11px !important; color:#475569;">
+                                    * Fully Paid: ${getPercent(reportData.NET_METERING.fp, reportData.NET_METERING.total)}<br>
+                                    * Partially Paid: ${getPercent(reportData.NET_METERING.pp, reportData.NET_METERING.total)}<br>
+                                    * No Bill: ${getPercent(reportData.NET_METERING.nb, reportData.NET_METERING.total)}<br>
+                                    * 1-Month: ${getPercent(reportData.NET_METERING.u1, reportData.NET_METERING.total)}<br>
+                                    * 2+ Months: ${getPercent(reportData.NET_METERING.u2, reportData.NET_METERING.total)}
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: bold;">DN/ODAA STATUS</td>
+                            <td>
+                                <div>Delivered DN/ODAA: <strong>${reportData.POWER.discS}</strong></div>
+                                <div>Pending DN/ODAA: <strong>${reportData.POWER.discP}</strong></div>
+                            </td>
+                            <td>
+                                <div>Delivered DN/ODAA: <strong>${reportData.SCHOOLS.discS}</strong></div>
+                                <div>Pending DN/ODAA: <strong>${reportData.SCHOOLS.discP}</strong></div>
+                            </td>
+                            <td>
+                                <div>Delivered DN/ODAA: <strong>${reportData.STREETLIGHTS.discS}</strong></div>
+                                <div>Pending DN/ODAA: <strong>${reportData.STREETLIGHTS.discP}</strong></div>
+                            </td>
+                            <td>
+                                <div>Delivered DN/ODAA: <strong>${reportData.NET_METERING.discS}</strong></div>
+                                <div>Pending DN/ODAA: <strong>${reportData.NET_METERING.discP}</strong></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: bold;">JOB-ORDER</td>
+                            <td>
+                                <div>Served (Tendered): <strong>${reportData.POWER.joS}</strong></div>
+                                <div>Disconnected: <strong>${reportData.POWER.joD}</strong></div>
+                                <div>Pending: <strong>${reportData.POWER.joP}</strong></div>
+                                <div class="mt-2 text-[11px] text-slate-500 italic">Promised to settle soon:</div>
+                                <ol class="list-decimal pl-4 text-[11px] text-slate-600">
+                                    <li>PHOENIX PETROLEUM</li>
+                                    <li>SOPHIL RESOURCES</li>
+                                </ol>
+                            </td>
+                            <td>
+                                <div>Served (Tendered): <strong>${reportData.SCHOOLS.joS}</strong></div>
+                                <div>Disconnected: <strong>${reportData.SCHOOLS.joD}</strong></div>
+                                <div>Pending: <strong>${reportData.SCHOOLS.joP}</strong></div>
+                                <div class="mt-2 text-[11px] text-slate-500 italic">Key School status:</div>
+                                <ul class="list-disc pl-4 text-[11px] text-slate-600">
+                                    <li>PALALAN ES (Change of name pending)</li>
+                                    <li>DECS-TAGOLOAN (Arrears ongoing)</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <div>Served (Tendered): <strong>${reportData.STREETLIGHTS.joS}</strong></div>
+                                <div>Disconnected: <strong>${reportData.STREETLIGHTS.joD}</strong></div>
+                                <div>Pending: <strong>${reportData.STREETLIGHTS.joP}</strong></div>
+                                <div class="mt-2 text-[11px] text-slate-500 italic">Visited:</div>
+                                <ul class="list-disc pl-4 text-[11px] text-slate-600">
+                                    <li>DAYAWAN STREETLIGHT</li>
+                                    <li>GOMEZ, VIVIAN (Staggered ATC active)</li>
+                                </ul>
+                            </td>
+                            <td>
+                                <div>Served (Tendered): <strong>${reportData.NET_METERING.joS}</strong></div>
+                                <div>Disconnected: <strong>${reportData.NET_METERING.joD}</strong></div>
+                                <div>Pending: <strong>${reportData.NET_METERING.joP}</strong></div>
+                                <div class="text-[11px] text-slate-400 italic mt-1 font-mono">No JO outstanding.</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: bold;">KEY ACCOUNTS SETTLED</td>
+                            <td>
+                                <div class="space-y-1">
+                                    <ol style="margin: 0; padding-left: 14px; font-size: 11px !important; color: #334155; list-style-type: decimal;">
+                                        ${reportData.POWER.fpNames.slice(0, 15).map(n => `<li>${n}</li>`).join('') || "<li>No key accounts</li>"}
+                                    </ol>
+                                    ${reportData.POWER.fpNames.length > 15 ? `<p class="text-[10px] text-blue-600 font-semibold mt-1" style="font-size: 10px !important;">* And ${reportData.POWER.fpNames.length - 15} more accounts</p>` : ""}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="space-y-1">
+                                    <ol style="margin: 0; padding-left: 14px; font-size: 11px !important; color: #334155; list-style-type: decimal;">
+                                        ${reportData.SCHOOLS.fpNames.slice(0, 10).map(n => `<li>${n}</li>`).join('') || "<li>VICENT N CHAVES MEMORIAL</li><li>LOKONG ELEMENTARY SCHOOL</li>"}
+                                    </ol>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="space-y-1">
+                                    <ol style="margin: 0; padding-left: 14px; font-size: 11px !important; color: #334155; list-style-type: decimal;">
+                                        ${reportData.STREETLIGHTS.fpNames.slice(0, 10).map(n => `<li>${n}</li>`).join('') || "<li>RESINS INC.</li><li>GOMEZ, VIVIAN</li>"}
+                                    </ol>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="space-y-1">
+                                    <ol style="margin: 0; padding-left: 14px; font-size: 11px !important; color: #334155; list-style-type: decimal;">
+                                        ${reportData.NET_METERING.fpNames.slice(0, 10).map(n => `<li>${n}</li>`).join('') || "<li>BABIERA, LINA</li><li>BAOBAO, OLIVIA #2</li><li>LUMOGDANG, EMILYN</li>"}
+                                    </ol>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight: bold;">ADD. REMARKS</td>
+                            <td>Job Order to be endorsed to DSD-CAS</td>
+                            <td>Job Order to be endorsed to DSD-CAS</td>
+                            <td>Job Order to be endorsed to DSD-CAS</td>
+                            <td>Job Order to be endorsed to DSD-CAS</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>&nbsp;</p>
+                <div class="summary-block">
+                    <p style="font-weight: bold; font-size: 13pt !important; border-bottom: 2px solid #1e293b; padding-bottom: 4px;">TOTAL COLLECTION SUMMARY</p>
+                    <p>Total Accounts monitored: <strong id="canvasTotalAccounts">${overallTotal}</strong></p>
+                    <p>Overall % Breakdown:</p>
+                    <ul style="list-style-type: square; padding-left: 20px;">
+                        <li>Fully Paid Accounts: <strong>${overallFP} (${getPercent(overallFP, overallTotal)})</strong></li>
+                        <li>With Partial Payment: <strong>${overallPP} (${getPercent(overallPP, overallTotal)})</strong></li>
+                        <li>No Bill: <strong>${overallNB} (${getPercent(overallNB, overallTotal)})</strong></li>
+                        <li>With 1-Month Balance: <strong>${overallU1} (${getPercent(overallU1, overallTotal)})</strong></li>
+                        <li>With 2+ Months Balance: <strong>${overallU2} (${getPercent(overallU2, overallTotal)})</strong></li>
+                    </ul>
+                </div>
+
+                <p>&nbsp;</p>
+                <p style="font-weight: bold; font-size: 13pt !important; border-bottom: 2px solid #1e293b; padding-bottom: 4px;" class="no-print">COLLECTION PERFORMANCE VISUALIZATIONS</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 my-4 no-print" contenteditable="false">
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <h4 class="text-xs font-bold text-center text-slate-700 uppercase tracking-wide mb-2">Overall Accounts Combined Breakdown</h4>
+                        <div class="relative h-64 w-full flex items-center justify-center">
+                            <canvas id="overallCombinedChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <h4 class="text-xs font-bold text-center text-slate-700 uppercase tracking-wide mb-2">Breakdown By Customer Segment Category</h4>
+                        <div class="relative h-64 w-full flex items-center justify-center">
+                            <canvas id="categorySegmentChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <p>&nbsp;</p>
+                <div class="task-block">
+                    <p style="font-weight: bold; font-size: 13pt !important; border-bottom: 2px solid #1e293b; padding-bottom: 4px;">DAILY TASK PROGRESSION, ACCOMPLISHMENT & SCHEDULED TASKS</p>
+                    <div id="canvasTaskProgressionInside"></div>
+                </div>
+
+                <p>&nbsp;</p>
+                <p style="font-weight: bold; font-size: 13pt !important; border-bottom: 2px solid #1e293b; padding-bottom: 4px;">OVER-ALL JOB-ORDER PROGRESS</p>
+                <p>No account disconnected, all Job-orders tagged as tendered payment.</p>
+                <p>Disconnection will follow for accounts tendered without payment.</p>
+
+                <p>&nbsp;</p>
+                <p>Please see the attached Excel file for the full monitoring details. Thank you.</p>
+                <p>Regards,</p>
+                <p><strong><span>${preparer}</span></strong></p>
+            `;
+
+            const targetInsideDiv = document.getElementById('canvasTaskProgressionInside');
+            const sourceDiv = document.getElementById('canvasTaskProgression');
+            if (targetInsideDiv && sourceDiv) {
+                targetInsideDiv.innerHTML = sourceDiv.innerHTML;
+            }
+
+            updateCharts(overallFP, overallPP, overallNB, overallU1, overallU2, reportData);
+        }
+
+        function updateCharts(fp, pp, nb, u1, u2, reportData) {
+            if (overallPieChartInstance) overallPieChartInstance.destroy();
+            if (segmentChartInstance) segmentChartInstance.destroy();
+
+            const overallCtx = document.getElementById('overallCombinedChart').getContext('2d');
+            const segmentCtx = document.getElementById('categorySegmentChart').getContext('2d');
+
+            overallPieChartInstance = new Chart(overallCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Fully Paid', 'Partial Payment', 'No Bill', '1-Month Balance', '2+ Months Balance'],
+                    datasets: [{
+                        data: [fp, pp, nb, u1, u2],
+                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#64748b', '#ef4444'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+                    }
+                }
+            });
+
+            segmentChartInstance = new Chart(segmentCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['POWER', 'SCHOOLS', 'STREETLIGHTS', 'NET METERING'],
+                    datasets: [
+                        {
+                            label: 'Fully Paid',
+                            data: [reportData.POWER.fp, reportData.SCHOOLS.fp, reportData.STREETLIGHTS.fp, reportData.NET_METERING.fp],
+                            backgroundColor: '#10b981'
+                        },
+                        {
+                            label: 'No Bill',
+                            data: [reportData.POWER.nb, reportData.SCHOOLS.nb, reportData.STREETLIGHTS.nb, reportData.NET_METERING.nb],
+                            backgroundColor: '#f59e0b'
+                        },
+                        {
+                            label: 'Unpaid/Partial',
+                            data: [
+                                (reportData.POWER.pp + reportData.POWER.u1 + reportData.POWER.u2),
+                                (reportData.SCHOOLS.pp + reportData.SCHOOLS.u1 + reportData.SCHOOLS.u2),
+                                (reportData.STREETLIGHTS.pp + reportData.STREETLIGHTS.u1 + reportData.STREETLIGHTS.u2),
+                                (reportData.NET_METERING.pp + reportData.NET_METERING.u1 + reportData.NET_METERING.u2)
+                            ],
+                            backgroundColor: '#ef4444'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        function saveAsPDFDocument() {
+            if (!excelRawData.length) {
+                showMessage("Nothing to Export", "Load a masterlist and generate a report first.");
+                return;
+            }
+            const element = document.getElementById('reportCanvasContainer');
+            const month = document.getElementById('reportMonth').value;
+            const year = document.getElementById('reportYear').value;
+            
+            const opt = {
+                margin:       [12, 12, 12, 12], // Professional letter margin (approx 0.5 in)
+                filename:     `CEPALCO_Collection_Report_M${month}_${year}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'letter', orientation: 'portrait' },
+                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            // Programmatically fit visual graphics gracefully
+            html2pdf().set(opt).from(element).save();
+        }
+
+        function copyReportAsPlainText() {
+            if (!excelRawData.length) {
+                showMessage("Nothing to Copy", "Load a masterlist and generate a report first.");
+                return;
+            }
+            const textToCopy = document.getElementById('reportContent').innerText;
+
+            const fallbackCopy = () => {
+                const tempEl = document.createElement('textarea');
+                tempEl.value = textToCopy;
+                tempEl.style.position = 'fixed';
+                tempEl.style.opacity = '0';
+                document.body.appendChild(tempEl);
+                tempEl.select();
+                try {
+                    document.execCommand('copy');
+                    showMessage("Success", "Plain text report successfully copied to clipboard.");
+                } catch (err) {
+                    showMessage("Copy Failed", "Could not copy automatically. Please select and copy the report text manually.");
+                }
+                document.body.removeChild(tempEl);
+            };
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    showMessage("Success", "Plain text report successfully copied to clipboard.");
+                }).catch(fallbackCopy);
+            } else {
+                fallbackCopy();
+            }
+        }
+
+        function exportWordDocument() {
+            if (!excelRawData.length) {
+                showMessage("Nothing to Export", "Load a masterlist and generate a report first.");
+                return;
+            }
+            const reportContainer = document.getElementById('reportContent');
+            const clone = reportContainer.cloneNode(true);
+            
+            // Clean dynamic visual interactive charts before Word parser compiles layout
+            const chartsSection = clone.querySelector('.no-print');
+            if (chartsSection) chartsSection.remove();
+
+            // Convert interactive canvases to static high-res images embedded inside Word output
+            const overallImg = overallPieChartInstance ? overallPieChartInstance.toBase64Image() : '';
+            const segmentImg = segmentChartInstance ? segmentChartInstance.toBase64Image() : '';
+
+            // Standard Word XML namespaces enforcing exact 1-inch margins
+            const styleHeader = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                <head>
+                    <title>CEPALCO Collection Report</title>
+                    <!--[if gte mso 9]>
+                    <xml>
+                        <w:WordDocument>
+                            <w:View>Print</w:View>
+                            <w:Zoom>100</w:Zoom>
+                            <w:DoNotOptimizeForBrowser/>
+                        </w:WordDocument>
+                    </xml>
+                    <![endif]-->
+                    <style>
+                        @page Section1 {
+                            size: 8.5in 11.0in;
+                            margin: 1.0in 1.0in 1.0in 1.0in;
+                            mso-header-margin: .5in;
+                            mso-footer-margin: .5in;
+                            mso-paper-source: 0;
+                        }
+                        div.Section1 { 
+                            page: Section1; 
+                        }
+                        body {
+                            font-family: 'Calibri', 'Aptos', Arial, sans-serif;
+                            font-size: 12pt;
+                            line-height: 1.4;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 15px;
+                            margin-bottom: 15px;
+                        }
+                        th, td {
+                            border: 1px solid #1e293b;
+                            padding: 8px 10px;
+                            font-size: 10pt;
+                            vertical-align: top;
+                            text-align: left;
+                        }
+                        th {
+                            background-color: #f1f5f9;
+                            font-weight: bold;
+                        }
+                        p {
+                            margin: 0 0 10px 0;
+                        }
+                        h1, h2, h3 {
+                            margin-top: 20px;
+                            margin-bottom: 10px;
+                            font-family: 'Calibri', 'Aptos', sans-serif;
+                        }
+                        ul, ol {
+                            margin-top: 5px;
+                            margin-bottom: 15px;
+                            padding-left: 20px;
+                        }
+                        li {
+                            font-size: 10.5pt;
+                            margin-bottom: 4px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="Section1">
+            `;
+            
+            const footer = `
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            const tableEl = clone.querySelector('table');
+            if (tableEl) {
+                tableEl.setAttribute('border', '1');
+                tableEl.style.border = "1px solid #1e293b";
+                tableEl.style.borderCollapse = "collapse";
+            }
+
+            // Append base64 charts directly inside output report flow if parsed successfully
+            let customChartHTML = '';
+            if (overallImg || segmentImg) {
+                customChartHTML += '<p>&nbsp;</p><h3>COLLECTION GRAPHICAL METRICS</h3>';
+                if (overallImg) {
+                    customChartHTML += `<p><strong>Overall Accounts Combined Breakdown:</strong></p><p><img src="${overallImg}" width="360" height="240" style="width:360px;height:240px;" /></p>`;
+                }
+                if (segmentImg) {
+                    customChartHTML += `<p><strong>Breakdown By Customer Segment Category:</strong></p><p><img src="${segmentImg}" width="360" height="240" style="width:360px;height:240px;" /></p>`;
+                }
+            }
+
+            const docContent = styleHeader + clone.innerHTML + customChartHTML + footer;
+            
+            const blob = new Blob(['\ufeff' + docContent], {
+                type: 'application/msword;charset=utf-8'
+            });
+            
+            const month = document.getElementById('reportMonth').value;
+            const year = document.getElementById('reportYear').value;
+            const fileName = `CEPALCO_Collection_Report_M${month}_${year}.doc`;
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showMessage("Export Complete", "Microsoft Word (.doc) report has been downloaded. Open in Microsoft Word for final alignment checks.");
+        }
+    window.addEventListener('DOMContentLoaded',()=>{try{const s=JSON.parse(localStorage.getItem('cep_file')||'null');if(!s)return;const u=Uint8Array.from(atob(s.b),c=>c.charCodeAt(0));handleFileSelect({target:{files:[new File([u],s.n)]}})}catch(e){}});
+</script>
+</body>
+</html>
