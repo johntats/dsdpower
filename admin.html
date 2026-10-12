@@ -39,6 +39,7 @@
         <div class="max-w-7xl mx-auto px-4 flex gap-6">
             <a class="navtab" href="index.html" data-feature="collections">Collections</a>
             <a class="navtab" href="index.html#acc" data-feature="accounts">Accounts</a>
+            <a class="navtab" href="index.html#con" data-feature="contacts">Contact Directory</a>
             <a class="navtab" href="report.html" data-feature="report">Generate report</a>
             <a class="navtab on" href="admin.html" data-admin>Admin</a>
         </div>
@@ -56,10 +57,10 @@
         </section>
         <section class="card p-5">
             <h2 class="font-bold text-base mb-1">Permissions</h2>
-            <p class="text-xs text-slate-500 mb-3">Pick who to edit, then tick what they can do. Admin always has full access.</p>
+            <p class="text-xs text-slate-500 mb-3">Pick who to edit, then tick what they can do on each page. Admin always has full access.</p>
             <select id="who" class="in mb-3"></select>
             <table><thead><tr><th>Feature</th><th class="text-center">View</th><th class="text-center">Create</th><th class="text-center">Edit</th><th class="text-center">Delete</th></tr></thead><tbody id="mx"></tbody></table>
-            <p class="text-xs text-slate-500 mt-3">Today the pages enforce <b>View</b>. Create / Edit / Delete are saved for future features, which can check them with <code>Auth.can('feature','update')</code>.</p>
+            <p class="text-xs text-slate-500 mt-3"><b>Accounts:</b> View shows the summary table. Create adds accounts, Edit changes any cell in the Excel-format grid, Delete removes accounts. Anyone with Create, Edit or Delete on Accounts also sees the full Excel-format grid. <b>Contact Directory:</b> View shows customer, contract number, phone number, email and contact person; Edit lets the user update phone, email and contact person. All of this is enforced on the server.</p>
         </section>
     </main>
 <script>
@@ -69,7 +70,7 @@ const msg=(t,e)=>{$('#m').textContent=t;$('#m').className='text-sm lg:col-span-2
 async function refresh(){const j=await Auth.call('users');if(j.e)return msg(j.e,1);db=j;users()}
 function users(){$('#ul').innerHTML=db.users.map(x=>`<tr><td>${esc(x.u)}</td><td>${x.role==='admin'?'Admin':'User'}</td><td><button class="lk" data-a="pw" data-u="${esc(x.u)}">Reset password</button>${x.role==='admin'?'':`<button class="lk red" data-a="del" data-u="${esc(x.u)}">Delete</button>`}</td></tr>`).join('');
 const cur=$('#who').value;$('#who').innerHTML='<option value="guest">Guest</option>'+db.users.filter(x=>x.role==='user').map(x=>`<option value="${esc(x.u)}">User: ${esc(x.u)}</option>`).join('');if([...$('#who').options].some(o=>o.value===cur))$('#who').value=cur;mx()}
-function mx(){const p=db.perms[$('#who').value]||{};$('#mx').innerHTML=Object.entries(Auth.FEATS).map(([f,n])=>`<tr><td class="font-semibold">${n}</td>`+Auth.ACTS.map(a=>`<td class="text-center"><input type="checkbox" data-f="${f}" data-a="${a}" ${p[f]&&p[f][a]?'checked':''}></td>`).join('')+'</tr>').join('')}
+function mx(){const p=db.perms[$('#who').value]||{};$('#mx').innerHTML=Object.entries(Auth.FEATS).map(([f,n])=>`<tr><td class="font-semibold">${n}</td>`+Auth.ACTS.map(a=>(Auth.NA[f]||[]).includes(a)?'<td class="text-center text-slate-300">\u2014</td>':`<td class="text-center"><input type="checkbox" data-f="${f}" data-a="${a}" ${p[f]&&p[f][a]?'checked':''}></td>`).join('')+'</tr>').join('')}
 $('#who').onchange=mx;
 $('#mx').onchange=async e=>{const t=e.target,k=$('#who').value,v=t.checked?1:0;const j=await Auth.call('setperm',{k,f:t.dataset.f,x:t.dataset.a,v});if(j.e){t.checked=!v;return msg(j.e,1)}const p=db.perms[k]=db.perms[k]||{};(p[t.dataset.f]=p[t.dataset.f]||{})[t.dataset.a]=v;msg('Permissions saved')};
 $('#nu').onsubmit=async e=>{e.preventDefault();const u=$('#u').value.trim().toLowerCase(),j=await Auth.call('adduser',{u,p:$('#p').value});if(j.e)return msg(j.e,1);e.target.reset();msg('User "'+u+'" created (starts with the same access as guest)');refresh()};

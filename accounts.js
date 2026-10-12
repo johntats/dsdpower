@@ -154,39 +154,41 @@ const CT = (() => {
   const mail = v => !v ? '<span class="text-slate-400">\u2014</span>' : hasMail(v)
     ? v.split(/\s*[;,]\s*/).filter(Boolean).map(x => `<a class="text-blue-700 underline" href="mailto:${esc(x)}">${esc(x)}</a>`).join(', ')
     : '<span class="text-slate-400 italic">' + (/^no email$/i.test(v.trim()) ? 'No email' : 'Has email, address not recorded') + '</span>';
+  const phone = v => v ? esc(v) : '<span class="text-slate-400">\u2014</span>';
   const person = v => v ? esc(v) : '<span class="text-slate-400">\u2014</span>';
   function list() {
     const q = $c('#cq').value.trim().toLowerCase(), f = $c('#cf').value;
-    return r.filter(x => (!q || [x.name, x.cn, x.email, x.person].join(' ').toLowerCase().includes(q)) &&
+    return r.filter(x => (!q || [x.name, x.cn, x.phone, x.email, x.person].join(' ').toLowerCase().includes(q)) &&
       (!f || (f === 'nm' ? !hasMail(x.email) : f === 'np' ? !x.person : hasMail(x.email) && !!x.person)));
   }
   function rowHtml(x) {
     const u = can('update');
-    return `<tr data-id="${esc(x.id)}"><td>${esc(x.name)}</td><td>${esc(x.cn ?? '')}</td><td data-f="email" class="${u ? 'ed' : ''}">${mail(x.email)}</td><td data-f="person" class="${u ? 'ed' : ''}">${person(x.person)}</td></tr>`;
+    return `<tr data-id="${esc(x.id)}"><td>${esc(x.name)}</td><td>${esc(x.cn ?? '')}</td><td data-f="phone" class="${u ? 'ed' : ''}">${phone(x.phone)}</td><td data-f="email" class="${u ? 'ed' : ''}">${mail(x.email)}</td><td data-f="person" class="${u ? 'ed' : ''}">${person(x.person)}</td></tr>`;
   }
   function render() {
     const l = list(), last = Math.max(0, Math.ceil(l.length / size) - 1); if (pg > last) pg = last;
     $c('#ccnt').textContent = l.length + ' of ' + r.length + ' accounts';
-    $c('#chint').textContent = (can('update') ? 'Click an email or contact person to edit it. ' : '') + r.filter(x => hasMail(x.email)).length + ' have an email address recorded, ' + r.filter(x => x.person).length + ' have a contact person.';
-    $c('#ctb').innerHTML = l.slice(pg * size, (pg + 1) * size).map(rowHtml).join('') || '<tr><td colspan="4" class="text-slate-500">No matching accounts.</td></tr>';
+    $c('#chint').textContent = (can('update') ? 'Click an email or contact person to edit it. ' : '') + r.filter(x => hasMail(x.email)).length + ' have an email address recorded, ' + r.filter(x => x.person).length + ' have a contact person, ' + r.filter(x => x.phone).length + ' have a phone number.';
+    $c('#ctb').innerHTML = l.slice(pg * size, (pg + 1) * size).map(rowHtml).join('') || '<tr><td colspan="5" class="text-slate-500">No matching accounts.</td></tr>';
     pager($c('#cpg'), l.length, pg, size, p => { pg = p; render(); });
   }
   async function save(id, f, v) {
-    const key = f === 'email' ? 'EMAIL ADDRESS' : 'Contact Person';
+    const key = f === 'email' ? 'EMAIL ADDRESS' : f === 'phone' ? 'PHONE NO.' : 'Contact Person';
+    if (f === 'phone' && v && !/^[0-9+()\-\s,;\/]{5,}$/.test(v)) { msg('Phone number can only have digits, spaces, + - ( ) and , / ; between several numbers.', 1); return false; }
     if (f === 'email' && v && !v.split(/\s*[;,]\s*/).filter(Boolean).every(okMail)) { msg('That is not a valid email address (separate several with a comma).', 1); return false; }
     msg('Saving\u2026'); const j = await Auth.call('con_upd', { id, patch: { [key]: v } });
     if (!j.ok) { msg(j.e || 'Not saved', 1); return false; }
     const i = r.findIndex(x => x.id === id); if (i >= 0) r[i] = j.rec;
-    const a = recs.find(x => x._id === id); if (a) { a['EMAIL ADDRESS'] = j.rec.email; a['Contact Person'] = j.rec.person; }
+    const a = recs.find(x => x._id === id); if (a) { a['EMAIL ADDRESS'] = j.rec.email; a['Contact Person'] = j.rec.person; a['PHONE NO.'] = j.rec.phone; }
     const tr = $c('#ctb tr[data-id="' + id + '"]'); if (tr) tr.outerHTML = rowHtml(j.rec);
     msg('Saved \u2713'); return true;
   }
   function edit(td) {
     const id = td.parentNode.dataset.id, f = td.dataset.f, x = r.find(y => y.id === id); if (!x) return;
     editCell(td, {
-      value: f === 'email' ? (hasMail(x.email) ? x.email : '') : x.person, type: 's',
+      value: f === 'email' ? (hasMail(x.email) ? x.email : '') : f === 'phone' ? x.phone : x.person, type: 's',
       save: v => save(id, f, v),
-      next: dir => { const row = $c('#ctb tr[data-id="' + id + '"]'), n = row && row.querySelector('td[data-f="' + (f === 'email' ? 'person' : 'email') + '"].ed'); if (n && ((f === 'email' && dir > 0) || (f === 'person' && dir < 0))) edit(n); }
+      next: dir => { const o = ['phone', 'email', 'person'], row = $c('#ctb tr[data-id="' + id + '"]'), n = row && row.querySelector('td[data-f="' + o[o.indexOf(f) + dir] + '"].ed'); if (n) edit(n); }
     });
   }
   async function open() {

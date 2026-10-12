@@ -9,7 +9,8 @@ const FEATS = ["collections", "accounts", "contacts", "report"], ACTS = ["view",
 const NA = { contacts: ["create", "delete"] };
 // Accounts masterlist: same columns, same order as sheet "MONITORING FOR CODE". s=text, n=number, d=date (YYYY-MM-DD), x=number or text
 const COLS = [["CUSTOMER TYPE","s"],["BILLING","s"],["DN/ODAA","s"],["JOB-ORDER","s"],["CLN","s"],["SUB-AREA","s"],["CUSTOMER NAME","s"],["AREA","x"],["RATE SCHED","x"],["CONTRACT NO.","n"],["MONTHS UNPAID","n"],["DUE DATE","d"],["PAYMENT DATE","d"],["ARREARS","n"],["LATEST BILL AMOUNT","n"],["TOTAL BALANCE AMOUNT","n"],["PAID AMOUNT","n"],["REMAINING BALANCE","n"],["SMS","s"],["EMAIL","s"],["FIELD REMARKS","s"],["PHONE NO.","s"],["EMAIL ADDRESS","s"],["Contact Person","s"]];
-const CONTACT_COLS = ["PHONE NO.", "EMAIL ADDRESS", "Contact Person"], CONTACT_EDIT = ["EMAIL ADDRESS", "Contact Person"];
+const CONTACT_COLS = ["PHONE NO.", "EMAIL ADDRESS", "Contact Person"], CONTACT_EDIT = ["PHONE NO.", "EMAIL ADDRESS", "Contact Person"];
+const ct = x => ({ id: x._id, name: x["CUSTOMER NAME"], cn: x["CONTRACT NO."], phone: x["PHONE NO."], email: x["EMAIL ADDRESS"], person: x["Contact Person"] });
 const row = v => ({ view: v ? 1 : 0, create: 0, update: 0, delete: 0 });
 const defGuest = () => ({ collections: row(1), accounts: row(1), contacts: row(0), report: row(0) });
 const hash = (p, salt) => crypto.scryptSync(p, salt, 32).toString("hex");
@@ -95,15 +96,15 @@ export default async (req) => {
   if (a === "getcontacts") {
     if (!can(me, db, "contacts")) return J({ e: "Not allowed" }, 403);
     const d = await loadAcc(s);
-    return J({ r: d.r.map(x => ({ id: x._id, name: x["CUSTOMER NAME"], cn: x["CONTRACT NO."], email: x["EMAIL ADDRESS"], person: x["Contact Person"] })) });
+    return J({ r: d.r.map(ct) });
   }
   if (a === "con_upd") {
     if (!can(me, db, "contacts", "update")) return J({ e: "You do not have permission to edit contacts" }, 403);
     const d = await loadAcc(s), x = d.r.find(y => y._id === b.id); if (!x) return J({ e: "Account not found (it may have been deleted)" }, 404);
     const p = b.patch || {}, ks = Object.keys(p);
-    if (!ks.length || ks.some(k => !CONTACT_EDIT.includes(k))) return J({ e: "Only email and contact person can be edited here" }, 400);
+    if (!ks.length || ks.some(k => !CONTACT_EDIT.includes(k))) return J({ e: "Only phone, email and contact person can be edited here" }, 400);
     try { Object.assign(x, norm({ ...x, ...p }, x._id)); } catch (e) { return bad(e); }
-    await saveAcc(s, d); return J({ ok: 1, rec: { id: x._id, name: x["CUSTOMER NAME"], cn: x["CONTRACT NO."], email: x["EMAIL ADDRESS"], person: x["Contact Person"] } });
+    await saveAcc(s, d); return J({ ok: 1, rec: ct(x) });
   }
   if (a === "acc_add") {
     if (!can(me, db, "accounts", "create")) return J({ e: "You do not have permission to add accounts" }, 403);
