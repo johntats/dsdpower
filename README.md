@@ -7,6 +7,15 @@ A static website (GitHub + Netlify) that reads your `ACCOUNTS_MASTERLIST` Excel 
 - **Accounts** (`index.html`): search and filter, "Month paid" column, Early / On time / Late tag.
 - **Generate report** (`report.html`): your Collection Monitoring Update Tool. Pick the month, year, and week scope, then print, save as PDF, copy as text, or export to Word.
 
+## Status tags
+Each account gets one tag, used on the Accounts table and the report page:
+- **Fully paid:** remaining balance is zero.
+- **Partially paid:** has a paid amount and still has a remaining balance.
+- **No payment:** has a bill and no paid amount.
+- **No billing:** no bill (BILLING says NO BILL, or no bill amount).
+
+An account with blank amounts but "PAID" in DN/ODAA is tagged fully paid. If the sheet has none of the new money columns, the report falls back to the older DN/ODAA and blank-balance rules. On the report page, "No payment" accounts are split into 1 month and 2+ months using MONTHS UNPAID.
+
 ## Month rule
 A payment is counted in the month of its **PAYMENT DATE**, not the due date. Example: bill 9/27/2026, due 10/06/2026, paid 9/28/2026 counts in September 2026.
 

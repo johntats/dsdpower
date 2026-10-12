@@ -73,6 +73,13 @@
                 margin: 0.5in;
             }
         }
+            body{background:#eef1f5}
+        header.no-print{position:sticky;top:0;z-index:20}
+        .no-print .rounded-xl{border-radius:14px}
+        .no-print .shadow-sm{box-shadow:0 1px 3px rgba(15,23,42,.08)}
+        #btnGenerate{font-size:13px;padding:10px 20px}
+        select:focus,input:focus{outline:2px solid #2563eb;outline-offset:1px}
+        #reportCanvasContainer{box-shadow:0 8px 30px rgba(15,23,42,.12)}
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
@@ -301,12 +308,12 @@
                 </div>
 
                 <!-- Raw JSON / Data summary debug tool (collapsible) -->
-                <details class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs">
+                <details open class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 text-xs">
                     <summary class="font-bold cursor-pointer text-slate-700 flex justify-between items-center">
-                        <span>View Parsed Excel Analytics</span>
-                        <span class="bg-blue-100 text-blue-800 text-[9px] px-1.5 py-0.5 rounded font-mono">Debug view</span>
+                        <span class="text-sm">Account status tags</span>
+                        <span class="text-[10px] text-slate-400 font-normal">Fully paid, partially paid, no payment, no billing</span>
                     </summary>
-                    <div id="dataSummaryStats" class="mt-2 space-y-1 font-mono text-[11px] text-slate-600">
+                    <div id="dataSummaryStats" class="mt-3 text-[11px] text-slate-600">
                         No Excel sheet loaded yet. Use Step 1 to trigger auto analysis.
                     </div>
                 </details>
@@ -836,6 +843,10 @@
                 }
             });
 
+            const fk = t => keys.find(k => k.toString().toLowerCase().trim().includes(t)) || "";
+            columnsMapping.total = fk("total balance"); columnsMapping.paid = fk("paid amount");
+            columnsMapping.arrears = fk("arrears"); columnsMapping.latest = fk("latest bill");
+            const bl = keys.find(k => k.toString().toLowerCase().trim() === "billing"); if (bl) columnsMapping.billing = bl;
             const rb = keys.find(k => k.toString().toLowerCase().trim() === "remaining balance"); if (rb) columnsMapping.balance = rb;
             // Backups
             if (!columnsMapping.name && keys.length > 0) columnsMapping.name = keys[0];
@@ -865,6 +876,34 @@
                 div.appendChild(valSpan);
                 mappingList.appendChild(div);
             }
+        }
+
+
+        const moneyVal = v => { const n = parseFloat(String(v === undefined || v === null ? "" : v).replace(/[₱,\s]/g, "")); return isNaN(n) ? 0 : n; };
+        function tagAccount(row, m) {
+            const billing = (row[m.billing] || "").toString().toUpperCase().trim();
+            const dn = (row[m.dnOdaa] || "").toString().toUpperCase().trim();
+            const status = (row[m.paymentStatus] || "").toString().toLowerCase().trim();
+            const rawRem = row[m.balance];
+            const remBlank = rawRem === undefined || rawRem === null || String(rawRem).trim() === "";
+            if (!(m.paid || m.total || m.arrears || m.latest)) {
+                const partial = dn.includes("PARTIAL") || status.includes("partial");
+                if (billing === "NO BILL") return { tag: "NO BILLING", bill: 0, paid: 0, rem: 0 };
+                if (remBlank && !partial) return { tag: "FULLY PAID", bill: 0, paid: 0, rem: 0 };
+                if (partial) return { tag: "PARTIALLY PAID", bill: 0, paid: 0, rem: moneyVal(rawRem) };
+                return { tag: "NO PAYMENT", bill: 0, paid: 0, rem: moneyVal(rawRem) };
+            }
+            const hasTotal = m.total && String(row[m.total] === undefined || row[m.total] === null ? "" : row[m.total]).trim() !== "";
+            const bill = hasTotal ? moneyVal(row[m.total]) : moneyVal(row[m.arrears]) + moneyVal(row[m.latest]);
+            const paid = moneyVal(row[m.paid]);
+            const rem = remBlank ? bill - paid : moneyVal(rawRem);
+            let tag;
+            if (billing === "NO BILL") tag = "NO BILLING";
+            else if (bill <= 0 && paid <= 0) tag = dn.includes("PAID") ? "FULLY PAID" : "NO BILLING";
+            else if (rem <= 0) tag = "FULLY PAID";
+            else if (paid > 0) tag = "PARTIALLY PAID";
+            else tag = "NO PAYMENT";
+            return { tag, bill, paid, rem };
         }
 
         function generateReportUI() {
@@ -917,6 +956,7 @@
             };
 
             let grandTotalAccounts = 0;
+            const tagLog = [];
 
             // Parse each record row with the strict custom criteria rules requested
             excelRawData.forEach(row => {
@@ -939,35 +979,23 @@
                 targetCat.total++;
                 grandTotalAccounts++;
 
-                // Evaluation of Blank/Zero criteria
-                let isBalanceBlank = (row[columnsMapping.balance] === undefined || row[columnsMapping.balance] === null || row[columnsMapping.balance].toString().trim() === "");
-                let containsPartial = dnOdaaValue.includes("PARTIAL") || statusRaw.includes("partial");
-
-                // Strictly evaluate Billing for "NO BILL" first
-                if (billingRaw === "NO BILL") {
+                const t = tagAccount(row, columnsMapping);
+                tagLog.push({ cat: catMatch, name, tag: t.tag, bill: t.bill, paid: t.paid, rem: t.rem });
+                if (t.tag === "NO BILLING") {
                     targetCat.noBill++;
-                } 
-                // Fully Paid constraints (Billing NOT "NO BILL" AND Balance cell is strictly empty/blank AND DN/ODAA does not contain partial)
-                else if (billingRaw !== "NO BILL" && isBalanceBlank && !containsPartial) {
+                } else if (t.tag === "FULLY PAID") {
                     targetCat.fullyPaid++;
                     if (name) targetCat.fullyPaidNames.push(name);
-                } 
-                // Partially Paid constraints
-                else if (containsPartial) {
+                } else if (t.tag === "PARTIALLY PAID") {
                     targetCat.partiallyPaid++;
                     if (name) targetCat.partiallyPaidNames.push(name);
-                } 
-                // Outstanding categorizations
-                else {
+                } else {
                     let unpaidMonthsCount = 0;
                     if (monthsUnpaidRaw !== undefined && monthsUnpaidRaw !== null) {
                         let parsed = parseInt(monthsUnpaidRaw);
                         if (!isNaN(parsed)) unpaidMonthsCount = parsed;
                     }
-
-                    if (unpaidMonthsCount === 1 || statusRaw.includes("1-month") || statusRaw.includes("1 month")) {
-                        targetCat.oneMonthUnpaid++;
-                    } else if (unpaidMonthsCount >= 2 || statusRaw.includes("2+") || statusRaw.includes("2 or more") || statusRaw.includes("multi")) {
+                    if (unpaidMonthsCount >= 2 || statusRaw.includes("2+") || statusRaw.includes("2 or more") || statusRaw.includes("multi")) {
                         targetCat.multiMonthUnpaid++;
                     } else {
                         targetCat.oneMonthUnpaid++;
@@ -1082,13 +1110,23 @@
 
             const dbgDiv = document.getElementById('dataSummaryStats');
             if (hasData) {
-                dbgDiv.innerHTML = `
-                    <strong>Parsed Sheet Records:</strong> ${excelRawData.length} entries detected.<br>
-                    <strong>Power Cat Count:</strong> Fully Paid: ${reportData.POWER.fp}, Partial: ${reportData.POWER.pp}, No Bill: ${reportData.POWER.nb}, 1mo: ${reportData.POWER.u1}, 2mo+: ${reportData.POWER.u2}<br>
-                    <strong>Schools Cat Count:</strong> Fully Paid: ${reportData.SCHOOLS.fp}, Partial: ${reportData.SCHOOLS.pp}, No Bill: ${reportData.SCHOOLS.nb}, 1mo: ${reportData.SCHOOLS.u1}, 2mo+: ${reportData.SCHOOLS.u2}<br>
-                    <strong>Streetlights Cat Count:</strong> Fully Paid: ${reportData.STREETLIGHTS.fp}, Partial: ${reportData.STREETLIGHTS.pp}, No Bill: ${reportData.STREETLIGHTS.nb}, 1mo: ${reportData.STREETLIGHTS.u1}, 2mo+: ${reportData.STREETLIGHTS.u2}<br>
-                    <strong>Net Metering Cat Count:</strong> Fully Paid: ${reportData.NET_METERING.fp}, Partial: ${reportData.NET_METERING.pp}, No Bill: ${reportData.NET_METERING.nb}, 1mo: ${reportData.NET_METERING.u1}, 2mo+: ${reportData.NET_METERING.u2}
-                `;
+                window.__tagLog = tagLog;
+                const TAGS = [["FULLY PAID","bg-emerald-100 text-emerald-800"],["PARTIALLY PAID","bg-amber-100 text-amber-800"],["NO PAYMENT","bg-rose-100 text-rose-800"],["NO BILLING","bg-slate-200 text-slate-700"]];
+                const cats = [["POWER","Power"],["SCHOOLS","Schools"],["STREETLIGHTS","Streetlights"],["NET METERING","Net metering"]];
+                const cnt = (c, t) => tagLog.filter(x => (!c || x.cat === c) && x.tag === t).length;
+                const mode = (columnsMapping.paid || columnsMapping.total || columnsMapping.arrears || columnsMapping.latest) ? "Rules use PAID AMOUNT and REMAINING BALANCE." : "Money columns not found. Using the older DN/ODAA and blank-balance rules.";
+                dbgDiv.innerHTML = `<p class="mb-2 text-slate-500">${excelRawData.length} rows read. ${mode}</p>
+                    <table class="w-full text-[11px] mb-3"><thead><tr class="text-left text-slate-500"><th class="py-1">Category</th>${TAGS.map(t => `<th class="py-1 text-right">${t[0].toLowerCase()}</th>`).join("")}<th class="py-1 text-right">Total</th></tr></thead><tbody>
+                    ${cats.map(c => `<tr class="border-t border-slate-200"><td class="py-1 font-semibold">${c[1]}</td>${TAGS.map(t => `<td class="py-1 text-right">${cnt(c[0], t[0])}</td>`).join("")}<td class="py-1 text-right font-semibold">${tagLog.filter(x => x.cat === c[0]).length}</td></tr>`).join("")}
+                    <tr class="border-t-2 border-slate-300 font-bold"><td class="py-1">All</td>${TAGS.map(t => `<td class="py-1 text-right">${cnt("", t[0])}</td>`).join("")}<td class="py-1 text-right">${tagLog.length}</td></tr></tbody></table>
+                    <div class="flex gap-2 mb-2"><select id="tagFilter" class="p-1.5 border border-slate-300 rounded text-xs"><option value="">All tags</option>${TAGS.map(t => `<option>${t[0]}</option>`).join("")}</select><input id="tagSearch" placeholder="Search account" class="p-1.5 border border-slate-300 rounded text-xs flex-1"></div>
+                    <div class="max-h-64 overflow-auto border border-slate-200 rounded bg-white"><table class="w-full text-[11px]"><tbody id="tagRows"></tbody></table></div>`;
+                const drawTags = () => {
+                    const f = document.getElementById("tagFilter").value, q = document.getElementById("tagSearch").value.toLowerCase();
+                    const cls = Object.fromEntries(TAGS);
+                    document.getElementById("tagRows").innerHTML = tagLog.filter(x => (!f || x.tag === f) && (!q || (x.name || "").toLowerCase().includes(q))).slice(0, 300).map(x => `<tr class="border-b border-slate-100"><td class="p-1.5">${(x.name || "").replace(/</g, "&lt;")}</td><td class="p-1.5"><span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${cls[x.tag]}">${x.tag}</span></td><td class="p-1.5 text-right">${x.rem ? "₱" + Math.round(x.rem).toLocaleString("en-PH") : ""}</td></tr>`).join("");
+                };
+                document.getElementById("tagFilter").onchange = drawTags; document.getElementById("tagSearch").oninput = drawTags; drawTags();
             }
 
             let overallTotal = reportData.POWER.total + reportData.SCHOOLS.total + reportData.STREETLIGHTS.total + reportData.NET_METERING.total;

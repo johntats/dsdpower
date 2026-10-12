@@ -23,7 +23,7 @@ h2{font-size:15px;margin:0 0 8px}.box{height:270px;position:relative}
 .tw{overflow-x:auto;background:#fff;border:1px solid var(--line)}
 table{border-collapse:collapse;width:100%;font-size:13.5px}th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
 th{background:#eef1f5}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
-.late{color:#a32d2d}.early{color:var(--ambt)}
+.tag{padding:2px 8px;border-radius:10px;font-size:12px;font-weight:500}.Fu{background:#dcf2e4;color:#17603a}.Pa{background:#fbecc4;color:#7a4e00}.No{background:#fbdcdc;color:#8c2222}.Nob{background:#e4e8ee;color:#3d4756}.late{color:#a32d2d}.early{color:var(--ambt)}
 #out{white-space:pre-wrap;background:#fff;border:1px solid var(--line);padding:16px;margin-top:16px;min-height:80px}
 textarea{width:100%;min-height:70px}.empty{padding:40px;text-align:center;color:var(--mut)}
 @media(max-width:760px){.strip{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}}
@@ -42,7 +42,7 @@ textarea{width:100%;min-height:70px}.empty{padding:40px;text-align:center;color:
 </section>
 <section id="acc" hidden>
 <div class="bar"><input id="q" placeholder="Search name or contract"><select id="ty"></select><select id="sb"><option value="">All accounts</option><option value="u">Uncollected</option><option value="c">Collected</option></select><span id="cnt" style="color:var(--mut)"></span></div>
-<div class="tw"><table><thead><tr><th>Customer</th><th>Type</th><th>Contract</th><th>Due</th><th class="n">Total balance</th><th class="n">Paid</th><th>Month paid</th><th>Timing</th><th class="n">Remaining</th></tr></thead><tbody id="tb"></tbody></table></div>
+<div class="tw"><table><thead><tr><th>Customer</th><th>Type</th><th>Contract</th><th>Due</th><th class="n">Total balance</th><th class="n">Paid</th><th>Month paid</th><th>Status</th><th>Timing</th><th class="n">Remaining</th></tr></thead><tbody id="tb"></tbody></table></div>
 </section>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -56,7 +56,7 @@ const ml=k=>{if(k==='nodate')return'No date';const[y,m]=k.split('-');return new 
 const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
 let rows=[],ch={};
 function build(r){r.due=dt(r.due);r.pd=dt(r.pd);r.pm=r.paid>0?(r.pd?mk(r.pd):'nodate'):'';
-r.tm=r.pd&&r.due&&r.paid>0?(r.pd>r.due?'Late':mk(r.pd)<mk(r.due)?'Early':'On time'):'';return r}
+r.st=r.total<=0&&r.paid<=0?'No billing':r.rem<=0?'Fully paid':r.paid>0?'Partially paid':'No payment';r.tm=r.pd&&r.due&&r.paid>0?(r.pd>r.due?'Late':mk(r.pd)<mk(r.due)?'Early':'On time'):'';return r}
 function parse(wb){const ws=wb.Sheets['MONITORING FOR CODE']||wb.Sheets[wb.SheetNames[0]];
 return XLSX.utils.sheet_to_json(ws,{defval:null}).map(r=>{const o={};for(const k in r)o[k.trim().toUpperCase()]=r[k];
 const has=k=>o[k]!=null&&o[k]!=='';
@@ -88,7 +88,7 @@ draw('c3',{type:'bar',data:{labels:ts,datasets:[{label:'Collected',data:ts.map(t
 function table(){const sel=$('#mo').value,q=$('#q').value.toLowerCase(),t=$('#ty').value,s=$('#sb').value;
 const l=rows.filter(r=>(sel==='all'||r.pm===sel)&&(!t||r.type===t)&&(!s||(s==='u'?r.rem>0:r.paid>0))&&(!q||(r.name+' '+r.cn).toLowerCase().includes(q))).sort((a,b)=>b.rem-a.rem);
 $('#cnt').textContent=l.length+' accounts';
-$('#tb').innerHTML=l.slice(0,400).map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.type)}</td><td>${esc(r.cn)}</td><td>${r.due?r.due.toLocaleDateString('en-PH'):''}</td><td class="n">${php(r.total)}</td><td class="n">${php(r.paid)}</td><td>${r.pm?ml(r.pm):''}</td><td class="${r.tm.toLowerCase()}">${r.tm}</td><td class="n">${php(r.rem)}</td></tr>`).join('')}
+$('#tb').innerHTML=l.slice(0,400).map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.type)}</td><td>${esc(r.cn)}</td><td>${r.due?r.due.toLocaleDateString('en-PH'):''}</td><td class="n">${php(r.total)}</td><td class="n">${php(r.paid)}</td><td>${r.pm?ml(r.pm):''}</td><td><span class="tag ${({'Fully paid':'Fu','Partially paid':'Pa','No payment':'No','No billing':'Nob'})[r.st]}">${r.st}</span></td><td class="${r.tm.toLowerCase()}">${r.tm}</td><td class="n">${php(r.rem)}</td></tr>`).join('')}
 ['#mo','#ty','#sb'].forEach(i=>$(i).onchange=()=>{view()});$('#q').oninput=table;
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));['col','acc'].forEach(i=>$('#'+i).hidden=i!==b.dataset.t)});
 </script></body></html>
