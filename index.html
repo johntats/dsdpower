@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CEPALCO accounts monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14283f;--bg:#f6f7f9;--line:#d8dde4;--mut:#5b6877;--amb:#e0a100;--ambt:#8a5a00}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 "Public Sans",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--ink);color:#fff;padding:14px 24px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+h1{font-size:18px;margin:0;font-weight:700;flex:1}#st{font-size:13px;opacity:.8}
+.btn,button{font:inherit;cursor:pointer;border:1px solid var(--ink);background:#fff;color:var(--ink);padding:6px 14px;border-radius:4px}
+header .btn{background:var(--amb);border-color:var(--amb);font-weight:500}
+nav{display:flex;gap:24px;padding:0 24px;border-bottom:1px solid var(--line);background:#fff}
+nav button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:12px 0}
+nav button.on{border-color:var(--amb);font-weight:700}
+main{padding:24px;max-width:1200px;margin:auto}
+.bar{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+select,input,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:4px;background:#fff;color:var(--ink)}
+.strip{display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border:1px solid var(--line);margin-bottom:24px}
+.strip div{padding:16px 20px;border-left:1px solid var(--line)}.strip div:first-child{border:0}
+.strip small{display:block;color:var(--mut)}.strip b{font-size:24px;font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:24px}.wide{grid-column:1/-1}
+h2{font-size:15px;margin:0 0 8px}.box{height:270px;position:relative}
+.tw{overflow-x:auto;background:#fff;border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:#eef1f5}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.late{color:#a32d2d}.early{color:var(--ambt)}
+#out{white-space:pre-wrap;background:#fff;border:1px solid var(--line);padding:16px;margin-top:16px;min-height:80px}
+textarea{width:100%;min-height:70px}.empty{padding:40px;text-align:center;color:var(--mut)}
+@media(max-width:760px){.strip{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}}
+</style></head><body>
+<header><h1>CEPALCO accounts monitor</h1><span id="st">No data loaded</span>
+<label class="btn">Load Excel<input type="file" id="f" accept=".xlsx,.xlsm" hidden></label></header>
+<nav><button class="on" data-t="col">Collections</button><button data-t="acc">Accounts</button><button data-t="ai">AI analytics</button></nav>
+<main>
+<section id="col">
+<div class="bar"><label>Month paid <select id="mo"></select></label><span id="mn" style="color:var(--mut);font-size:13px">Payments are counted in the month of the payment date, not the due date.</span></div>
+<div class="strip"><div><small>Total billed</small><b id="k1"></b></div><div><small id="l2">Collected</small><b id="k2"></b></div><div><small>Uncollected</small><b id="k3"></b></div><div><small>Collection rate</small><b id="k4"></b></div></div>
+<div id="em" class="empty">Load your ACCOUNTS_MASTERLIST workbook to begin. Data stays in this browser.</div>
+<div class="grid"><div><h2>Collected by month paid</h2><div class="box"><canvas id="c1"></canvas></div></div>
+<div><h2>Collected vs uncollected</h2><div class="box"><canvas id="c2"></canvas></div></div>
+<div class="wide"><h2>By customer type</h2><div class="box"><canvas id="c3"></canvas></div></div></div>
+</section>
+<section id="acc" hidden>
+<div class="bar"><input id="q" placeholder="Search name or contract"><select id="ty"></select><select id="sb"><option value="">All accounts</option><option value="u">Uncollected</option><option value="c">Collected</option></select><span id="cnt" style="color:var(--mut)"></span></div>
+<div class="tw"><table><thead><tr><th>Customer</th><th>Type</th><th>Contract</th><th>Due</th><th class="n">Total balance</th><th class="n">Paid</th><th>Month paid</th><th>Timing</th><th class="n">Remaining</th></tr></thead><tbody id="tb"></tbody></table></div>
+</section>
+<section id="ai" hidden>
+<div class="bar"><input id="pc" type="password" placeholder="Passcode"><label><input type="checkbox" id="nm"> Include account names</label></div>
+<textarea id="qs">Summarize collections, point out weak spots, and tell me which accounts to follow up first.</textarea>
+<p><button id="ask">Analyze</button> <span style="color:var(--mut);font-size:13px">Only totals are sent unless you tick the box.</span></p>
+<div id="out">Results appear here.</div>
+</section>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const $=s=>document.querySelector(s),php=n=>'₱'+Math.round(n).toLocaleString('en-PH'),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num=v=>{const n=typeof v==='number'?v:parseFloat(String(v??'').replace(/[₱,\s]/g,''));return isNaN(n)?0:n};
+const dt=v=>{if(v==null||v==='')return null;let d=v instanceof Date?v:typeof v==='number'?new Date(Math.round((v-25569)*864e5)):new Date(v);return isNaN(d)?null:d};
+const mk=d=>d?d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'):'';
+const ml=k=>{if(k==='nodate')return'No date';const[y,m]=k.split('-');return new Date(+y,+m-1,1).toLocaleDateString('en',{month:'short',year:'numeric'})};
+const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
+let rows=[],ch={};
+function build(r){r.due=dt(r.due);r.pd=dt(r.pd);r.pm=r.paid>0?(r.pd?mk(r.pd):'nodate'):'';
+r.tm=r.pd&&r.due&&r.paid>0?(r.pd>r.due?'Late':mk(r.pd)<mk(r.due)?'Early':'On time'):'';return r}
+function parse(wb){const ws=wb.Sheets['MONITORING FOR CODE']||wb.Sheets[wb.SheetNames[0]];
+return XLSX.utils.sheet_to_json(ws,{defval:null}).map(r=>{const o={};for(const k in r)o[k.trim().toUpperCase()]=r[k];
+const has=k=>o[k]!=null&&o[k]!=='';
+const total=has('TOTAL BALANCE AMOUNT')?num(o['TOTAL BALANCE AMOUNT']):(has('ARREARS')||has('LATEST BILL AMOUNT'))?num(o['ARREARS'])+num(o['LATEST BILL AMOUNT']):num(o['AMOUNT']);
+const paid=num(o['PAID AMOUNT']);
+return build({type:o['CUSTOMER TYPE']||'OTHER',name:o['CUSTOMER NAME'],cn:o['CONTRACT NO.'],area:o['AREA'],mu:num(o['MONTHS UNPAID']),due:o['DUE DATE'],pd:o['PAYMENT DATE'],total,paid,rem:has('REMAINING BALANCE')?num(o['REMAINING BALANCE']):total-paid})})
+.filter(x=>x.name&&(x.total>0||x.paid>0))}
+function setRows(r,msg){rows=r;$('#st').textContent=msg;
+const ms=[...new Set(rows.map(x=>x.pm).filter(Boolean))].sort().reverse();
+$('#mo').innerHTML='<option value="all">All months</option>'+ms.map(k=>`<option value="${k}">${ml(k)}</option>`).join('');
+$('#ty').innerHTML='<option value="">All types</option>'+[...new Set(rows.map(x=>x.type))].sort().map(t=>`<option>${esc(t)}</option>`).join('');
+$('#em').hidden=rows.length>0;view();table()}
+$('#f').onchange=e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();
+fr.onload=()=>{try{const r=parse(XLSX.read(fr.result,{type:'array',cellDates:true}));setRows(r,f.name+' · '+r.length+' accounts');
+try{localStorage.setItem('cep_rows',JSON.stringify({n:f.name,r}))}catch(_){}}catch(x){$('#st').textContent='Could not read file: '+x.message}};fr.readAsArrayBuffer(f)};
+try{const s=JSON.parse(localStorage.getItem('cep_rows')||'null');if(s)setRows(s.r.map(build),s.n+' · '+s.r.length+' accounts (saved)')}catch(_){}
+function draw(id,c){ch[id]&&ch[id].destroy();ch[id]=new Chart($('#'+id),c)}
+const ax=v=>'₱'+(v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v);
+const opt={maintainAspectRatio:false,scales:{y:{ticks:{callback:ax}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>php(c.parsed.y??c.parsed)}}}};
+function view(){const sel=$('#mo').value,by={};rows.forEach(r=>{if(r.pm)by[r.pm]=(by[r.pm]||0)+r.paid});
+const billed=sum(rows,r=>r.total),unc=sum(rows,r=>r.rem),all=sum(rows,r=>r.paid),col=sel==='all'?all:(by[sel]||0);
+$('#k1').textContent=php(billed);$('#k2').textContent=php(col);$('#k3').textContent=php(unc);$('#k4').textContent=billed?(col/billed*100).toFixed(1)+'%':'0%';
+$('#l2').textContent=sel==='all'?'Collected (all months)':'Collected in '+ml(sel);
+const ks=Object.keys(by).sort();
+draw('c1',{type:'bar',data:{labels:ks.map(ml),datasets:[{data:ks.map(k=>by[k]),backgroundColor:ks.map(k=>k===sel?'#e0a100':'#14283f')}]},options:opt});
+draw('c2',{type:'doughnut',data:{labels:['Collected','Uncollected'],datasets:[{data:[all,unc],backgroundColor:['#14283f','#e0a100']}]},options:{maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom'},tooltip:{callbacks:{label:c=>php(c.parsed)}}}}});
+const ts=[...new Set(rows.map(r=>r.type))].sort(),inM=r=>sel==='all'||r.pm===sel;
+draw('c3',{type:'bar',data:{labels:ts,datasets:[{label:'Collected',data:ts.map(t=>sum(rows.filter(r=>r.type===t&&inM(r)),r=>r.paid)),backgroundColor:'#14283f'},{label:'Uncollected',data:ts.map(t=>sum(rows.filter(r=>r.type===t),r=>r.rem)),backgroundColor:'#e0a100'}]},options:{...opt,plugins:{...opt.plugins,legend:{display:true}}}});table()}
+function table(){const sel=$('#mo').value,q=$('#q').value.toLowerCase(),t=$('#ty').value,s=$('#sb').value;
+const l=rows.filter(r=>(sel==='all'||r.pm===sel)&&(!t||r.type===t)&&(!s||(s==='u'?r.rem>0:r.paid>0))&&(!q||(r.name+' '+r.cn).toLowerCase().includes(q))).sort((a,b)=>b.rem-a.rem);
+$('#cnt').textContent=l.length+' accounts';
+$('#tb').innerHTML=l.slice(0,400).map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.type)}</td><td>${esc(r.cn)}</td><td>${r.due?r.due.toLocaleDateString('en-PH'):''}</td><td class="n">${php(r.total)}</td><td class="n">${php(r.paid)}</td><td>${r.pm?ml(r.pm):''}</td><td class="${r.tm.toLowerCase()}">${r.tm}</td><td class="n">${php(r.rem)}</td></tr>`).join('')}
+['#mo','#ty','#sb'].forEach(i=>$(i).onchange=()=>{view()});$('#q').oninput=table;
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));['col','acc','ai'].forEach(i=>$('#'+i).hidden=i!==b.dataset.t)});
+$('#pc').value=sessionStorage.getItem('cep_pc')||'';
+$('#ask').onclick=async()=>{if(!rows.length){$('#out').textContent='Load the Excel file first.';return}
+const nm=$('#nm').checked,billed=sum(rows,r=>r.total),all=sum(rows,r=>r.paid),by={},ty={},ag={'Current':0,'1 month':0,'2+ months':0},tg={};
+rows.forEach(r=>{if(r.pm)by[ml(r.pm)]=(by[ml(r.pm)]||0)+r.paid;const o=ty[r.type]=ty[r.type]||{billed:0,collected:0,uncollected:0};o.billed+=r.total;o.collected+=r.paid;o.uncollected+=r.rem;
+ag[r.mu>=2?'2+ months':r.mu===1?'1 month':'Current']+=r.rem;if(r.tm)tg[r.tm]=(tg[r.tm]||0)+1});
+const summary={billed,collected:all,uncollected:billed-all,collectedByMonthPaid:by,byType:ty,uncollectedByMonthsUnpaid:ag,paymentTiming:tg,
+top10Uncollected:[...rows].sort((a,b)=>b.rem-a.rem).slice(0,10).map((r,i)=>({account:nm?r.name:'Account '+(i+1),type:r.type,monthsUnpaid:r.mu,remaining:r.rem}))};
+sessionStorage.setItem('cep_pc',$('#pc').value);$('#out').textContent='Analyzing...';
+try{const r=await fetch('/.netlify/functions/ai',{method:'POST',body:JSON.stringify({passcode:$('#pc').value,question:$('#qs').value,summary})});
+const j=await r.json();$('#out').textContent=j.text||j.error||'No answer.'}catch(e){$('#out').textContent='AI request failed: '+e.message}};
+</script></body></html>

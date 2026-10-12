@@ -1,0 +1,6 @@
+*.xlsx
+*.xlsm
+*.csv
+.env
+node_modules
+.netlify
