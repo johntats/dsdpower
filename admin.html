@@ -63,23 +63,20 @@
         </section>
     </main>
 <script>
-Auth.ready.then(ok=>{if(!ok)return;
-const db=Auth.db(),$=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+Auth.ready.then(async ok=>{if(!ok)return;
+let db={users:[],perms:{}};const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const msg=(t,e)=>{$('#m').textContent=t;$('#m').className='text-sm lg:col-span-2 min-h-[1.25rem] '+(e?'text-red-600':'text-emerald-700')};
+async function refresh(){const j=await Auth.call('users');if(j.e)return msg(j.e,1);db=j;users()}
 function users(){$('#ul').innerHTML=db.users.map(x=>`<tr><td>${esc(x.u)}</td><td>${x.role==='admin'?'Admin':'User'}</td><td><button class="lk" data-a="pw" data-u="${esc(x.u)}">Reset password</button>${x.role==='admin'?'':`<button class="lk red" data-a="del" data-u="${esc(x.u)}">Delete</button>`}</td></tr>`).join('');
 const cur=$('#who').value;$('#who').innerHTML='<option value="guest">Guest</option>'+db.users.filter(x=>x.role==='user').map(x=>`<option value="${esc(x.u)}">User: ${esc(x.u)}</option>`).join('');if([...$('#who').options].some(o=>o.value===cur))$('#who').value=cur;mx()}
 function mx(){const p=db.perms[$('#who').value]||{};$('#mx').innerHTML=Object.entries(Auth.FEATS).map(([f,n])=>`<tr><td class="font-semibold">${n}</td>`+Auth.ACTS.map(a=>`<td class="text-center"><input type="checkbox" data-f="${f}" data-a="${a}" ${p[f]&&p[f][a]?'checked':''}></td>`).join('')+'</tr>').join('')}
 $('#who').onchange=mx;
-$('#mx').onchange=e=>{const t=e.target,k=$('#who').value,p=db.perms[k]=db.perms[k]||{};(p[t.dataset.f]=p[t.dataset.f]||Auth.row(0))[t.dataset.a]=t.checked?1:0;Auth.save();msg('Permissions saved')};
-$('#nu').onsubmit=async e=>{e.preventDefault();const u=$('#u').value.trim().toLowerCase(),p=$('#p').value;
-if(!/^[a-z0-9._-]{3,20}$/.test(u))return msg('Username: 3-20 letters, numbers, . _ -',1);
-if(u==='guest'||db.users.some(x=>x.u===u))return msg('That username is taken',1);
-if(p.length<4)return msg('Password needs at least 4 characters',1);
-db.users.push({u,ph:await Auth.H(u,p),role:'user'});db.perms[u]=JSON.parse(JSON.stringify(db.perms.guest));Auth.save();e.target.reset();msg('User "'+u+'" created (starts with the same access as guest)');users()};
+$('#mx').onchange=async e=>{const t=e.target,k=$('#who').value,v=t.checked?1:0;const j=await Auth.call('setperm',{k,f:t.dataset.f,x:t.dataset.a,v});if(j.e){t.checked=!v;return msg(j.e,1)}const p=db.perms[k]=db.perms[k]||{};(p[t.dataset.f]=p[t.dataset.f]||{})[t.dataset.a]=v;msg('Permissions saved')};
+$('#nu').onsubmit=async e=>{e.preventDefault();const u=$('#u').value.trim().toLowerCase(),j=await Auth.call('adduser',{u,p:$('#p').value});if(j.e)return msg(j.e,1);e.target.reset();msg('User "'+u+'" created (starts with the same access as guest)');refresh()};
 $('#ul').onclick=async e=>{const b=e.target.closest('button');if(!b)return;const u=b.dataset.u;
-if(b.dataset.a==='pw'){const p=prompt('New password for '+u+' (min 4 characters):');if(p===null)return;if(p.length<4)return msg('Password needs at least 4 characters',1);db.users.find(x=>x.u===u).ph=await Auth.H(u,p);Auth.save();msg('Password updated for '+u)}
-else if(confirm('Delete user '+u+'?')){db.users=db.users.filter(x=>x.u!==u);delete db.perms[u];Auth.save();msg('User deleted');users()}};
-users()});
+if(b.dataset.a==='pw'){const p=prompt('New password for '+u+' (min 4 characters):');if(p===null)return;const j=await Auth.call('setpw',{u,p});msg(j.e||'Password updated for '+u,!!j.e)}
+else if(confirm('Delete user '+u+'?')){const j=await Auth.call('deluser',{u});msg(j.e||'User deleted',!!j.e);refresh()}};
+refresh()});
 </script>
 </body>
 </html>

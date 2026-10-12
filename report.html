@@ -1717,7 +1717,7 @@
             
             showMessage("Export Complete", "Microsoft Word (.doc) report has been downloaded. Open in Microsoft Word for final alignment checks.");
         }
-    window.addEventListener('DOMContentLoaded',()=>{try{const s=JSON.parse(localStorage.getItem('cep_file')||'null');if(!s)return;const u=Uint8Array.from(atob(s.b),c=>c.charCodeAt(0));handleFileSelect({target:{files:[new File([u],s.n)]}})}catch(e){}});
+    Auth.ready.then(async ok=>{if(!ok)return;try{const s=await Auth.call('getfile');if(!s.b)return;const u=Uint8Array.from(atob(s.b),c=>c.charCodeAt(0));handleFileSelect({target:{files:[new File([u],s.n)]}})}catch(e){}});
 </script>
 </body>
 </html>

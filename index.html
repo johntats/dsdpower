@@ -46,7 +46,7 @@
             </div>
             <div class="text-right text-xs text-slate-300 flex items-center gap-3">
                 <span id="st">No data loaded</span><span id="authSlot"></span>
-                <label class="bg-yellow-400 text-blue-900 font-semibold rounded-lg px-4 py-2 cursor-pointer hover:bg-yellow-300 text-sm">Load Excel<input type="file" id="f" accept=".xlsx,.xlsm" hidden></label>
+                <label data-admin hidden class="bg-yellow-400 text-blue-900 font-semibold rounded-lg px-4 py-2 cursor-pointer hover:bg-yellow-300 text-sm">Load Excel<input type="file" id="f" accept=".xlsx,.xlsm" hidden></label>
             </div>
         </div>
     </header>
@@ -79,7 +79,7 @@
             <div class="card kpi p-5"><small>Total latest uncollected</small><b id="k7"></b></div>
             <div class="card kpi p-5"><small>Total arrears uncollected</small><b id="k8"></b></div>
         </div>
-        <div id="em" class="card p-10 text-center text-slate-500 mb-6">Load your ACCOUNTS_MASTERLIST workbook to begin. Data stays in this browser.</div>
+        <div id="em" class="card p-10 text-center text-slate-500 mb-6">No data yet. An admin needs to load the ACCOUNTS_MASTERLIST workbook.</div>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="card p-5 lg:col-span-2"><h2 class="font-bold text-slate-800 text-base mb-2">Collected by month paid</h2><div class="box"><canvas id="c1"></canvas></div></div>
             <div class="card p-5"><h2 class="font-bold text-slate-800 text-base mb-2">Collected vs uncollected</h2><div class="box"><canvas id="c2"></canvas></div></div>
@@ -118,9 +118,12 @@ $('#mo').innerHTML='<option value="all">All months</option>'+ms.map(k=>`<option 
 $('#ty').innerHTML='<option value="">All types</option>'+[...new Set(rows.map(x=>x.type))].sort().map(t=>`<option>${esc(t)}</option>`).join('');
 $('#em').hidden=rows.length>0;view();table()}
 $('#f').onchange=e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();
-fr.onload=()=>{try{const r=parse(XLSX.read(fr.result,{type:'array',cellDates:true}));setRows(r,f.name+' · '+r.length+' accounts');
-try{localStorage.setItem('cep_rows',JSON.stringify({n:f.name,r}))}catch(_){}try{const b=new Uint8Array(fr.result);let t='';for(let i=0;i<b.length;i+=8192)t+=String.fromCharCode.apply(null,b.subarray(i,i+8192));localStorage.setItem('cep_file',JSON.stringify({n:f.name,b:btoa(t)}))}catch(_){}}catch(x){$('#st').textContent='Could not read file: '+x.message}};fr.readAsArrayBuffer(f)};
-try{const s=JSON.parse(localStorage.getItem('cep_rows')||'null');if(s)setRows(s.r.map(build),s.n+' · '+s.r.length+' accounts (saved)'+(s.r.some(x=>x.ar===undefined)?' · reload Excel to update arrears figures':''))}catch(_){}
+fr.onload=async()=>{let r;try{r=parse(XLSX.read(fr.result,{type:'array',cellDates:true}))}catch(x){$('#st').textContent='Could not read file: '+x.message;return}
+setRows(r,f.name+' \u00b7 '+r.length+' accounts \u00b7 saving\u2026');
+const u8=new Uint8Array(fr.result);let t='';for(let i=0;i<u8.length;i+=8192)t+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));const b=btoa(t);
+const j=await Auth.call('putdata',{n:f.name,r,b:b.length<4e6?b:null});
+$('#st').textContent=j.ok?f.name+' \u00b7 '+r.length+' accounts \u00b7 saved to system':'Not saved: '+(j.e||'error')};fr.readAsArrayBuffer(f)};
+async function loadSaved(){const j=await Auth.call('getdata');if(j.r&&j.r.length)setRows(j.r.map(build),j.n+' \u00b7 '+j.r.length+' accounts'+(j.at?' \u00b7 updated '+new Date(j.at).toLocaleDateString('en-PH'):''))}
 function draw(id,c){ch[id]&&ch[id].destroy();ch[id]=new Chart($('#'+id),c)}
 const ax=v=>'₱'+(v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v);
 const opt={maintainAspectRatio:false,scales:{y:{ticks:{callback:ax}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>php(c.parsed.y??c.parsed)}}}};
@@ -141,5 +144,5 @@ $('#cnt').textContent=l.length+' accounts';
 $('#tb').innerHTML=l.slice(0,400).map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.type)}</td><td>${esc(r.cn)}</td><td>${r.due?r.due.toLocaleDateString('en-PH'):''}</td><td class="n">${php(r.total)}</td><td class="n">${php(r.paid)}</td><td>${r.pm?ml(r.pm):''}</td><td><span class="tag ${({'Fully paid':'Fu','Partially paid':'Pa','Overpaid':'Ov','No payment':'No','No billing':'Nob'})[r.st]}">${r.st}</span></td><td class="${r.tm.toLowerCase()}">${r.tm}</td><td class="n">${php(r.rem)}</td></tr>`).join('')}
 ['#mo','#ty','#sb'].forEach(i=>$(i).onchange=()=>{view()});$('#q').oninput=table;
 const tabs=document.querySelectorAll('nav button');tabs.forEach(b=>b.onclick=()=>{tabs.forEach(x=>x.classList.toggle('on',x===b));['col','acc'].forEach(i=>$('#'+i).hidden=i!==b.dataset.t)});
-Auth.ready.then(ok=>{if(!ok)return;const c=Auth.can('collections'),a=Auth.can('accounts'),b=t=>document.querySelector('nav button[data-t="'+t+'"]');if(!c)b('acc').click();else if(a&&location.hash==='#acc')b('acc').click()});
+Auth.ready.then(ok=>{if(!ok)return;loadSaved();const c=Auth.can('collections'),a=Auth.can('accounts'),b=t=>document.querySelector('nav button[data-t="'+t+'"]');if(!c)b('acc').click();else if(a&&location.hash==='#acc')b('acc').click()});
 </script></body></html>

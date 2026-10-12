@@ -33,9 +33,10 @@
     </main>
 <script>
 const nxt=(()=>{const n=new URLSearchParams(location.search).get('next')||'';return /^[\w.-]+\.html(#\w+)?$/.test(n)?n:'index.html'})();
-document.getElementById('f').onsubmit=async e=>{e.preventDefault();const ok=await Auth.login(document.getElementById('u').value,document.getElementById('p').value);
-if(ok)location.href=nxt;else document.getElementById('e').hidden=false};
-document.getElementById('g').onclick=()=>{Auth.guest();location.href='index.html'};
+const E=document.getElementById('e');
+document.getElementById('f').onsubmit=async e=>{e.preventDefault();E.hidden=true;const r=await Auth.login(document.getElementById('u').value,document.getElementById('p').value);
+if(r===true)location.href=nxt;else{E.textContent=r;E.hidden=false}};
+document.getElementById('g').onclick=async()=>{E.hidden=true;const r=await Auth.guest();if(r===true)location.href='index.html';else{E.textContent=r;E.hidden=false}};
 </script>
 </body>
 </html>
