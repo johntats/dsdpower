@@ -1,6 +1,6 @@
 /* CEPALCO login. Users, permissions and data live on the server (/api, Netlify Blobs). */
 const Auth=(()=>{
-const S='cep_session',FEATS={collections:'Collections',accounts:'Accounts',report:'Generate report'},ACTS=['view','create','update','delete'];
+const S='cep_session',FEATS={collections:'Collections',accounts:'Accounts',contacts:'Contact Directory',report:'Generate report'},NA={contacts:['create','delete']},ACTS=['view','create','update','delete'];
 const cs=document.currentScript,g=(cs&&cs.dataset)||{},guarded=!!(g.guard||g.admin!==undefined);
 if(guarded)document.documentElement.style.visibility='hidden';
 const ses=()=>{try{return JSON.parse(sessionStorage.getItem(S))}catch(e){return null}};
@@ -23,5 +23,7 @@ const ok=g.admin!==undefined?r.role==='admin':(g.guard||'').split(',').some(f=>c
 hydrate();document.documentElement.style.visibility='visible';
 if(!ok){const m=document.querySelector('main');if(m){m.hidden=true;m.insertAdjacentHTML('beforebegin','<div class="max-w-xl mx-auto mt-16 bg-white p-10 rounded-xl border border-slate-200 text-center"><h2 class="font-bold text-lg mb-2">Access restricted</h2><p class="text-sm text-slate-500">Your account does not have permission to view this page.</p></div>')}}
 return ok}
+/* Saved accounts -> plain rows keyed by Excel header, dates as Excel serial numbers (what the report page expects from an uploaded workbook). */
+const excelRows=(d,dateFmt)=>d.r.map(x=>{const o={};d.cols.forEach(([k,t])=>{let v=x[k];if(t==='d'&&v&&!dateFmt){const[y,m,dd]=v.split('-').map(Number);v=Date.UTC(y,m-1,dd)/864e5+25569}o[k]=v==null?'':v});return o});
 const ready=guarded?new Promise(r=>document.addEventListener('DOMContentLoaded',()=>guard().then(r))):Promise.resolve(false);
-return{FEATS,ACTS,call,can,ses,logout,login,guest,ready}})();
+return{FEATS,NA,ACTS,excelRows,call,can,ses,logout,login,guest,ready}})();

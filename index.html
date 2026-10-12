@@ -7,7 +7,7 @@
     <!-- Tailwind CSS (same as report page) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="auth.js" data-guard="collections,accounts"></script>
+    <script src="auth.js" data-guard="collections,accounts,contacts"></script>
     <style>
         body{background:#eef1f5;font-family:'Inter',system-ui,sans-serif}
         header.no-print{position:sticky;top:0;z-index:20}
@@ -34,6 +34,15 @@
         .fd summary::-webkit-details-marker{display:none}.fd summary::after{content:" \25BE"}.fd[open] summary,.fd.on summary{border-color:#2563eb;color:#1e3a8a}
         .fp{position:absolute;z-index:10;margin-top:4px;min-width:200px;max-height:260px;overflow:auto;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.15);padding:8px;font-size:13px}
         .fp label{display:flex;gap:8px;align-items:center;padding:4px 6px;cursor:pointer;white-space:nowrap;border-radius:6px}.fp label:hover{background:#f1f5f9}
+        #agrid th{position:sticky;top:0;z-index:2;cursor:pointer;user-select:none}
+        #agrid th:hover{color:#1e3a8a}
+        td.ed{cursor:cell}td.ed:hover{background:#eff6ff}td.cal{background:#f8fafc;color:#64748b}
+        td.cell-ed{padding:3px 4px}
+        input.cell{width:100%;min-width:110px;border:2px solid #2563eb;border-radius:4px;padding:2px 6px;font-size:13px;background:#fff}
+        .xb{color:#b91c1c;font-weight:700;background:none;border:0;cursor:pointer;padding:0 6px}.xb:hover{background:#fee2e2;border-radius:4px}
+        .btn{border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:6px 12px;font-size:13px;font-weight:600;color:#334155;cursor:pointer}.btn:hover{background:#f1f5f9}.btn:disabled{opacity:.4;cursor:default}
+        .btn.pri{background:#1e3a8a;border-color:#1e3a8a;color:#fff}.btn.pri:hover{background:#1e40af}
+        .fi{margin-top:4px;width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:6px 10px;font-size:13px;background:#fff}.fi:disabled{background:#f1f5f9}
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
@@ -60,6 +69,7 @@
         <div class="max-w-7xl mx-auto px-4 flex gap-6">
             <button class="navtab on" data-t="col" data-feature="collections">Collections</button>
             <button class="navtab" data-t="acc" data-feature="accounts">Accounts</button>
+            <button class="navtab" data-t="con" data-feature="contacts">Contact Directory</button>
             <a class="navtab" href="report.html" data-feature="report">Generate report</a>
             <a class="navtab" href="admin.html" data-admin hidden>Admin</a>
         </div>
@@ -92,14 +102,47 @@
         </div>
     </section>
     <section id="acc" hidden>
+        <div id="accView">
         <div class="flex flex-wrap items-center gap-3 mb-4">
             <input id="q" placeholder="Search name or contract"><select id="ty"></select><select id="sb"><option value="">All accounts</option><option value="u">Uncollected</option><option value="c">Collected</option></select><span id="cnt" class="text-sm text-slate-500"></span>
         </div>
         <div class="tw"><table><thead><tr><th>Customer</th><th>Type</th><th>Contract</th><th>Due</th><th class="n">Months unpaid</th><th class="n">Total balance</th><th class="n">Paid</th><th>Month paid</th><th>Status</th><th>Timing</th><th class="n">Remaining</th></tr></thead><tbody id="tb"></tbody></table></div>
+        </div>
+        <div id="accEdit" hidden>
+            <div class="flex flex-wrap items-center gap-3 mb-2">
+                <input id="aq" placeholder="Search name, contract or CLN" style="min-width:240px"><select id="aty"></select><select id="abl"></select>
+                <span id="acnt" class="text-sm text-slate-500"></span><span class="flex-1"></span>
+                <button id="aadd" class="btn pri" hidden>+ Add account</button>
+                <button id="aexp" class="btn" title="Download the current data as an Excel file (backup)">Export to Excel</button>
+            </div>
+            <p class="text-xs text-slate-500 mb-2"><span id="ahint"></span> <span id="amsg" class="font-semibold"></span></p>
+            <div class="tw" style="max-height:70vh;overflow:auto"><table id="agrid"></table></div>
+            <div id="apg" class="flex items-center gap-3 mt-3 text-sm"></div>
+        </div>
     </section>
+    <section id="con" hidden>
+        <div class="flex flex-wrap items-center gap-3 mb-2">
+            <input id="cq" placeholder="Search customer, contract, email or contact person" style="min-width:300px">
+            <select id="cf"><option value="">All accounts</option><option value="nm">Missing email address</option><option value="np">Missing contact person</option><option value="ok">Complete (email + contact person)</option></select>
+            <span id="ccnt" class="text-sm text-slate-500"></span>
+        </div>
+        <p class="text-xs text-slate-500 mb-2">Built from the Accounts list, so a new account appears here automatically. <span id="chint"></span> <span id="cmsg" class="font-semibold"></span></p>
+        <div class="tw"><table><thead><tr><th>Customer name</th><th>Contract number</th><th>Email address</th><th>Contact person</th></tr></thead><tbody id="ctb"></tbody></table></div>
+        <div id="cpg" class="flex items-center gap-3 mt-3 text-sm"></div>
+    </section>
+    <div id="am" hidden class="fixed inset-0 z-30 bg-slate-900/50 flex items-start justify-center overflow-auto p-4">
+        <form id="af" class="bg-white rounded-xl shadow-xl w-full max-w-3xl mt-8 p-5">
+            <h2 class="font-bold text-base mb-1">Add account</h2>
+            <p class="text-xs text-slate-500 mb-3">Customer name is required. Total balance is calculated when Arrears is filled, and Remaining balance is always calculated.</p>
+            <div id="afl" class="grid grid-cols-2 md:grid-cols-3 gap-3"></div>
+            <p id="aer" class="text-sm text-red-600 mt-3 min-h-[1.25rem]"></p>
+            <div class="flex justify-end gap-2 mt-2"><button type="button" id="acancel" class="btn">Cancel</button><button class="btn pri">Save account</button></div>
+        </form>
+    </div>
     </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="accounts.js"></script>
 <script>
 const $=s=>document.querySelector(s),php=n=>'₱'+Math.round(n).toLocaleString('en-PH'),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const num=v=>{const n=typeof v==='number'?v:parseFloat(String(v??'').replace(/[₱,\s]/g,''));return isNaN(n)?0:n};
@@ -107,29 +150,43 @@ const dt=v=>{if(v==null||v==='')return null;let d=v instanceof Date?v:typeof v==
 const mk=d=>d?d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'):'';
 const ml=k=>{if(k==='nodate')return'No date';const[y,m]=k.split('-');return new Date(+y,+m-1,1).toLocaleDateString('en',{month:'short',year:'numeric'})};
 const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
-let rows=[],ch={},rsCol='';
+let recs=[],cols=[],rows=[],ch={},rsCol='RATE SCHED';
+const ld=v=>{if(!v)return null;const[y,m,d]=String(v).split('-').map(Number);return new Date(y,m-1,d)},ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const has=(o,k)=>o[k]!=null&&o[k]!=='';
 function build(r){r.due=dt(r.due);r.pd=dt(r.pd);r.pm=r.paid>0?(r.pd?mk(r.pd):'nodate'):'';
 r.st=r.total<=0&&r.paid<=0?'No billing':r.rem<-.005?'Overpaid':r.rem<=0?'Fully paid':r.paid>0?'Partially paid':'No payment';r.tm=r.pd&&r.due&&r.paid>0?(r.pd>r.due?'Late':mk(r.pd)<mk(r.due)?'Early':'On time'):'';return r}
-function parse(wb){const ws=wb.Sheets['MONITORING FOR CODE']||wb.Sheets[wb.SheetNames[0]];
-const hd=(XLSX.utils.sheet_to_json(ws,{header:1})[0]||[]).map(h=>String(h??'').trim().toUpperCase()),rsk=hd.find(h=>/RATE/.test(h)&&!/COLLECTION|ARREAR/.test(h))||hd[8]||'';rsCol=rsk;
-return XLSX.utils.sheet_to_json(ws,{defval:null}).map(r=>{const o={};for(const k in r)o[k.trim().toUpperCase()]=r[k];
-const has=k=>o[k]!=null&&o[k]!=='';
-const total=has('TOTAL BALANCE AMOUNT')?num(o['TOTAL BALANCE AMOUNT']):(has('ARREARS')||has('LATEST BILL AMOUNT'))?num(o['ARREARS'])+num(o['LATEST BILL AMOUNT']):num(o['AMOUNT']);
-const paid=num(o['PAID AMOUNT']),rk=rsk;const ar=num(o['ARREARS']),lb=(has('LATEST BILL AMOUNT')||has('ARREARS'))?num(o['LATEST BILL AMOUNT']):total;
-return build({type:o['CUSTOMER TYPE']||'OTHER',name:o['CUSTOMER NAME'],cn:o['CONTRACT NO.'],area:o['AREA'],rs:rk?String(o[rk]??'').trim():'',mu:num(o['MONTHS UNPAID']),due:o['DUE DATE'],pd:o['PAYMENT DATE'],ar,lb,total,paid,rem:has('REMAINING BALANCE')?num(o['REMAINING BALANCE']):total-paid})})
-.filter(x=>x.name&&(x.total>0||x.paid>0))}
-function setRows(r,msg){rows=r;$('#st').textContent=msg;
+/* one saved account record (Excel columns) -> the row shape the dashboard uses */
+function toRow(o){const total=has(o,'TOTAL BALANCE AMOUNT')?num(o['TOTAL BALANCE AMOUNT']):(has(o,'ARREARS')||has(o,'LATEST BILL AMOUNT'))?num(o['ARREARS'])+num(o['LATEST BILL AMOUNT']):0;
+const paid=num(o['PAID AMOUNT']),ar=num(o['ARREARS']),lb=(has(o,'LATEST BILL AMOUNT')||has(o,'ARREARS'))?num(o['LATEST BILL AMOUNT']):total;
+return build({type:o['CUSTOMER TYPE']||'OTHER',name:o['CUSTOMER NAME'],cn:o['CONTRACT NO.'],area:o['AREA'],rs:String(o['RATE SCHED']??'').trim(),mu:num(o['MONTHS UNPAID']),due:ld(o['DUE DATE']),pd:ld(o['PAYMENT DATE']),ar,lb,total,paid,rem:has(o,'REMAINING BALANCE')?num(o['REMAINING BALANCE']):total-paid})}
+const viewRows=()=>recs.map(toRow).filter(x=>x.name&&(x.total>0||x.paid>0));
+/* Excel import: read the sheet, keep every column, dates as YYYY-MM-DD */
+function cell(k,v){const t=(cols.find(c=>c[0]===k)||[])[1];if(v===''||v==null)return null;
+if(typeof v==='string'&&/^#(REF|N\/A|VALUE|DIV|NAME|NUM|NULL)/.test(v))return null;
+if(t==='d'){if(v instanceof Date)return ymd(v);if(typeof v==='number')return new Date(Math.round((Math.floor(v)-25569)*864e5)).toISOString().slice(0,10);const d=new Date(v);return isNaN(d)?null:ymd(d)}
+if(t==='n'){const n=typeof v==='number'?v:parseFloat(String(v).replace(/[₱,\s]/g,''));return isNaN(n)?null:n}
+return v}
+function parseImport(wb){const ws=wb.Sheets['MONITORING FOR CODE']||wb.Sheets[wb.SheetNames[0]],raw=XLSX.utils.sheet_to_json(ws,{defval:null}),idx={};
+cols.forEach(([k])=>idx[k.toUpperCase()]=k);
+const out=raw.map(r=>{const o={};for(const h in r){const k=idx[String(h).trim().toUpperCase()];if(k)o[k]=cell(k,r[h])}return o}).filter(o=>o['CUSTOMER NAME']||o['CONTRACT NO.']);
+if(!out.length)throw new Error('no accounts found (needs a CUSTOMER NAME column)');return out}
+function fillSel(){const keep=[$('#mo').value,$('#ty').value];
 const ms=[...new Set(rows.map(x=>x.pm).filter(Boolean))].sort().reverse();
 $('#mo').innerHTML='<option value="all">All months</option>'+ms.map(k=>`<option value="${k}">${ml(k)}</option>`).join('');
 $('#ty').innerHTML='<option value="">All types</option>'+[...new Set(rows.map(x=>x.type))].sort().map(t=>`<option>${esc(t)}</option>`).join('');
-$('#em').hidden=rows.length>0;drawF();sumF();view();table()}
-$('#f').onchange=e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();
-fr.onload=async()=>{let r;try{r=parse(XLSX.read(fr.result,{type:'array',cellDates:true}))}catch(x){$('#st').textContent='Could not read file: '+x.message;return}
-setRows(r,f.name+' \u00b7 '+r.length+' accounts \u00b7 saving\u2026');
-const u8=new Uint8Array(fr.result);let t='';for(let i=0;i<u8.length;i+=8192)t+=String.fromCharCode.apply(null,u8.subarray(i,i+8192));const b=btoa(t);
-const j=await Auth.call('putdata',{n:f.name,r,b:b.length<4e6?b:null});
-$('#st').textContent=j.ok?f.name+' \u00b7 '+r.length+' accounts \u00b7 saved to system':'Not saved: '+(j.e||'error')};fr.readAsArrayBuffer(f)};
-async function loadSaved(){const j=await Auth.call('getdata');if(j.r&&j.r.length)setRows(j.r.map(build),j.n+' \u00b7 '+j.r.length+' accounts'+(j.at?' \u00b7 updated '+new Date(j.at).toLocaleDateString('en-PH'):''))}
+if([...$('#mo').options].some(o=>o.value===keep[0]))$('#mo').value=keep[0];if([...$('#ty').options].some(o=>o.value===keep[1]))$('#ty').value=keep[1]}
+function setRows(r,msg){recs=r;rows=viewRows();$('#st').textContent=msg;fillSel();
+$('#em').hidden=rows.length>0;drawF();sumF();view();table();AE.render()}
+/* after an edit in the grid: refresh the dashboard numbers (full=true also rebuilds the filter lists) */
+function rebuild(full){rows=viewRows();fillSel();$('#em').hidden=rows.length>0;if(full)drawF();sumF();view();table()}
+$('#f').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+if(!cols.length){$('#st').textContent='Not ready yet, try again in a moment';return}
+if(recs.length&&!confirm('Replace all '+recs.length+' accounts in the system with the contents of "'+f.name+'"?\n\nAny edits made inside the system will be overwritten. Use Export to Excel first if you want a backup.'))return;
+const fr=new FileReader();fr.onload=async()=>{let r;try{r=parseImport(XLSX.read(fr.result,{type:'array'}))}catch(x){$('#st').textContent='Could not read file: '+x.message;return}
+$('#st').textContent='Saving '+r.length+' accounts\u2026';const j=await Auth.call('putdata',{n:f.name,r});
+if(!j.ok){$('#st').textContent='Not saved: '+(j.e||'error');return}await loadSaved()};fr.readAsArrayBuffer(f)};
+async function loadSaved(){const j=await Auth.call('getdata');if(j.e){$('#st').textContent=j.e;return}cols=j.cols||[];
+setRows(j.r||[],j.r&&j.r.length?j.n+' \u00b7 '+j.r.length+' accounts'+(j.at?' \u00b7 updated '+new Date(j.at).toLocaleDateString('en-PH'):''):'No data loaded')}
 const FG=[['area','Area',r=>r.area],['type','Customer type',r=>r.type],['rs','Rate schedule',r=>r.rs]],sel={area:new Set(),type:new Set(),rs:new Set()},fv=v=>String(v??'').trim();
 const F=()=>rows.filter(r=>FG.every(([k,,g])=>!sel[k].size||sel[k].has(fv(g(r)))));
 function drawF(){FG.forEach(([k])=>sel[k].clear());
@@ -159,6 +216,10 @@ const l=rows.filter(r=>(sel==='all'||r.pm===sel)&&(!t||r.type===t)&&(!s||(s==='u
 $('#cnt').textContent=l.length+' accounts';
 $('#tb').innerHTML=l.slice(0,400).map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.type)}</td><td>${esc(r.cn)}</td><td>${r.due?r.due.toLocaleDateString('en-PH'):''}</td><td class="n">${r.mu||''}</td><td class="n">${php(r.total)}</td><td class="n">${php(r.paid)}</td><td>${r.pm?ml(r.pm):''}</td><td><span class="tag ${({'Fully paid':'Fu','Partially paid':'Pa','Overpaid':'Ov','No payment':'No','No billing':'Nob'})[r.st]}">${r.st}</span></td><td class="${r.tm.toLowerCase()}">${r.tm}</td><td class="n">${php(r.rem)}</td></tr>`).join('')}
 ['#mo','#ty','#sb'].forEach(i=>$(i).onchange=()=>{view()});$('#q').oninput=table;
-const tabs=document.querySelectorAll('nav button');tabs.forEach(b=>b.onclick=()=>{tabs.forEach(x=>x.classList.toggle('on',x===b));['col','acc'].forEach(i=>$('#'+i).hidden=i!==b.dataset.t)});
-Auth.ready.then(ok=>{if(!ok)return;loadSaved();const c=Auth.can('collections'),a=Auth.can('accounts'),b=t=>document.querySelector('nav button[data-t="'+t+'"]');if(!c)b('acc').click();else if(a&&location.hash==='#acc')b('acc').click()});
+const tabs=document.querySelectorAll('nav button'),TABS=['col','acc','con'];
+function showTab(t){tabs.forEach(x=>x.classList.toggle('on',x.dataset.t===t));TABS.forEach(i=>$('#'+i).hidden=i!==t);if(t==='con')CT.open()}
+tabs.forEach(b=>b.onclick=()=>showTab(b.dataset.t));
+Auth.ready.then(ok=>{if(!ok)return;const P={col:Auth.can('collections'),acc:Auth.can('accounts'),con:Auth.can('contacts')};
+AE.init();CT.init();if(P.col||P.acc)loadSaved();
+const h=location.hash.slice(1);showTab(P[h]?h:TABS.find(t=>P[t]))});
 </script></body></html>

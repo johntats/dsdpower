@@ -112,6 +112,7 @@
         <div class="max-w-7xl mx-auto px-4 flex gap-6">
             <a class="navtab" href="index.html" data-feature="collections">Collections</a>
             <a class="navtab" href="index.html#acc" data-feature="accounts">Accounts</a>
+            <a class="navtab" href="index.html#con" data-feature="contacts">Contact Directory</a>
             <a class="navtab on" href="report.html" data-feature="report">Generate report</a>
             <a class="navtab" href="admin.html" data-admin hidden>Admin</a>
         </div>
@@ -1717,7 +1718,7 @@
             
             showMessage("Export Complete", "Microsoft Word (.doc) report has been downloaded. Open in Microsoft Word for final alignment checks.");
         }
-    Auth.ready.then(async ok=>{if(!ok)return;try{const s=await Auth.call('getfile');if(!s.b)return;const u=Uint8Array.from(atob(s.b),c=>c.charCodeAt(0));handleFileSelect({target:{files:[new File([u],s.n)]}})}catch(e){}});
+    Auth.ready.then(async ok=>{if(!ok)return;try{const s=await Auth.call('getdata');if(!s.r||!s.r.length)return;const ws=XLSX.utils.json_to_sheet(Auth.excelRows(s),{header:s.cols.map(c=>c[0])}),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'MONITORING FOR CODE');const u=XLSX.write(wb,{type:'array',bookType:'xlsx'});handleFileSelect({target:{files:[new File([u],(s.n||'masterlist')+' (live data)')]}})}catch(e){}});
 </script>
 </body>
 </html>
