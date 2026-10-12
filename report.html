@@ -80,6 +80,9 @@
         #btnGenerate{font-size:13px;padding:10px 20px}
         select:focus,input:focus{outline:2px solid #2563eb;outline-offset:1px}
         #reportCanvasContainer{box-shadow:0 8px 30px rgba(15,23,42,.12)}
+        .navtab{display:inline-block;padding:12px 0;border:0;border-bottom:3px solid transparent;border-radius:0;background:none;font:inherit;font-size:14px;font-weight:500;color:#475569;cursor:pointer;text-decoration:none}
+        .navtab:hover{color:#1e3a8a}
+        .navtab.on{border-bottom-color:#2563eb;color:#1e3a8a;font-weight:700}
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
@@ -97,10 +100,19 @@
                 </div>
             </div>
             <div class="text-right text-xs text-slate-300">
-                <a href="index.html" class="underline mr-3">Back to monitor</a><span>Cagayan de Oro City, Northern Mindanao</span>
+                <span>Cagayan de Oro City, Northern Mindanao</span>
             </div>
         </div>
     </header>
+
+    <!-- Menu bar (same on every page) -->
+    <nav class="bg-white border-b border-slate-200 no-print">
+        <div class="max-w-7xl mx-auto px-4 flex gap-6">
+            <a class="navtab" href="index.html">Collections</a>
+            <a class="navtab" href="index.html#acc">Accounts</a>
+            <a class="navtab on" href="report.html">Generate report</a>
+        </div>
+    </nav>
 
     <main class="max-w-7xl mx-auto px-4 py-6">
         
@@ -311,7 +323,7 @@
                 <details open class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 text-xs">
                     <summary class="font-bold cursor-pointer text-slate-700 flex justify-between items-center">
                         <span class="text-sm">Account status tags</span>
-                        <span class="text-[10px] text-slate-400 font-normal">Fully paid, partially paid, no payment, no billing</span>
+                        <span class="text-[10px] text-slate-400 font-normal">Fully paid, partially paid, overpaid, no payment, no billing</span>
                     </summary>
                     <div id="dataSummaryStats" class="mt-3 text-[11px] text-slate-600">
                         No Excel sheet loaded yet. Use Step 1 to trigger auto analysis.
@@ -898,7 +910,8 @@
             const paid = moneyVal(row[m.paid]);
             const rem = remBlank ? bill - paid : moneyVal(rawRem);
             let tag;
-            if (billing === "NO BILL") tag = "NO BILLING";
+            if (rem < -0.005) tag = "OVERPAID";
+            else if (billing === "NO BILL") tag = "NO BILLING";
             else if (bill <= 0 && paid <= 0) tag = dn.includes("PAID") ? "FULLY PAID" : "NO BILLING";
             else if (rem <= 0) tag = "FULLY PAID";
             else if (paid > 0) tag = "PARTIALLY PAID";
@@ -937,6 +950,8 @@
                 fullyPaidNames: [],
                 partiallyPaid: 0,
                 partiallyPaidNames: [],
+                overpaid: 0,
+                overpaidNames: [],
                 noBill: 0,
                 oneMonthUnpaid: 0,
                 multiMonthUnpaid: 0,
@@ -989,6 +1004,9 @@
                 } else if (t.tag === "PARTIALLY PAID") {
                     targetCat.partiallyPaid++;
                     if (name) targetCat.partiallyPaidNames.push(name);
+                } else if (t.tag === "OVERPAID") {
+                    targetCat.overpaid++;
+                    if (name) targetCat.overpaidNames.push(name + " (₱" + Math.round(Math.abs(t.rem)).toLocaleString("en-PH") + " overpaid)");
                 } else {
                     let unpaidMonthsCount = 0;
                     if (monthsUnpaidRaw !== undefined && monthsUnpaidRaw !== null) {
@@ -1049,6 +1067,8 @@
                     u2: categories.POWER.multiMonthUnpaid,
                     fpNames: categories.POWER.fullyPaidNames,
                     ppNames: categories.POWER.partiallyPaidNames,
+                    op: categories.POWER.overpaid,
+                    opNames: categories.POWER.overpaidNames,
                     discS: categories.POWER.discServed,
                     discP: categories.POWER.discPending,
                     joS: categories.POWER.joServed,
@@ -1064,6 +1084,8 @@
                     u2: categories.SCHOOLS.multiMonthUnpaid,
                     fpNames: categories.SCHOOLS.fullyPaidNames,
                     ppNames: categories.SCHOOLS.partiallyPaidNames,
+                    op: categories.SCHOOLS.overpaid,
+                    opNames: categories.SCHOOLS.overpaidNames,
                     discS: categories.SCHOOLS.discServed,
                     discP: categories.SCHOOLS.discPending,
                     joS: categories.SCHOOLS.joServed,
@@ -1079,6 +1101,8 @@
                     u2: categories.STREETLIGHTS.multiMonthUnpaid,
                     fpNames: categories.STREETLIGHTS.fullyPaidNames,
                     ppNames: categories.STREETLIGHTS.partiallyPaidNames,
+                    op: categories.STREETLIGHTS.overpaid,
+                    opNames: categories.STREETLIGHTS.overpaidNames,
                     discS: categories.STREETLIGHTS.discServed,
                     discP: categories.STREETLIGHTS.discPending,
                     joS: categories.STREETLIGHTS.joServed,
@@ -1094,6 +1118,8 @@
                     u2: categories["NET METERING"].multiMonthUnpaid,
                     fpNames: categories["NET METERING"].fullyPaidNames,
                     ppNames: categories["NET METERING"].partiallyPaidNames,
+                    op: categories["NET METERING"].overpaid,
+                    opNames: categories["NET METERING"].overpaidNames,
                     discS: categories["NET METERING"].discServed,
                     discP: categories["NET METERING"].discPending,
                     joS: categories["NET METERING"].joServed,
@@ -1111,7 +1137,7 @@
             const dbgDiv = document.getElementById('dataSummaryStats');
             if (hasData) {
                 window.__tagLog = tagLog;
-                const TAGS = [["FULLY PAID","bg-emerald-100 text-emerald-800"],["PARTIALLY PAID","bg-amber-100 text-amber-800"],["NO PAYMENT","bg-rose-100 text-rose-800"],["NO BILLING","bg-slate-200 text-slate-700"]];
+                const TAGS = [["FULLY PAID","bg-emerald-100 text-emerald-800"],["PARTIALLY PAID","bg-amber-100 text-amber-800"],["OVERPAID","bg-sky-100 text-sky-800"],["NO PAYMENT","bg-rose-100 text-rose-800"],["NO BILLING","bg-slate-200 text-slate-700"]];
                 const cats = [["POWER","Power"],["SCHOOLS","Schools"],["STREETLIGHTS","Streetlights"],["NET METERING","Net metering"]];
                 const cnt = (c, t) => tagLog.filter(x => (!c || x.cat === c) && x.tag === t).length;
                 const mode = (columnsMapping.paid || columnsMapping.total || columnsMapping.arrears || columnsMapping.latest) ? "Rules use PAID AMOUNT and REMAINING BALANCE." : "Money columns not found. Using the older DN/ODAA and blank-balance rules.";
@@ -1131,6 +1157,7 @@
 
             let overallTotal = reportData.POWER.total + reportData.SCHOOLS.total + reportData.STREETLIGHTS.total + reportData.NET_METERING.total;
             let overallFP = reportData.POWER.fp + reportData.SCHOOLS.fp + reportData.STREETLIGHTS.fp + reportData.NET_METERING.fp;
+            let overallOP = reportData.POWER.op + reportData.SCHOOLS.op + reportData.STREETLIGHTS.op + reportData.NET_METERING.op;
             let overallPP = reportData.POWER.pp + reportData.SCHOOLS.pp + reportData.STREETLIGHTS.pp + reportData.NET_METERING.pp;
             let overallNB = reportData.POWER.nb + reportData.SCHOOLS.nb + reportData.STREETLIGHTS.nb + reportData.NET_METERING.nb;
             let overallU1 = reportData.POWER.u1 + reportData.SCHOOLS.u1 + reportData.STREETLIGHTS.u1 + reportData.NET_METERING.u1;
@@ -1162,7 +1189,7 @@
                             <td style="font-weight: bold;">PAYMENT STATUS</td>
                             <td>
                                 <div>Fully Paid Accounts: <strong>${reportData.POWER.fp}</strong></div>
-                                <div style="color: #64748b; font-size: 11px !important;">(Evaluated via Column M Blank rule)</div>
+                                <div style="color: #64748b; font-size: 11px !important;">(Remaining balance is zero)</div>
                                 <div class="mt-2">Partially Paid: <strong>${reportData.POWER.pp}</strong></div>
                                 
                                 ${reportData.POWER.ppNames && reportData.POWER.ppNames.length > 0 ? `
@@ -1174,6 +1201,8 @@
                                 </div>
                                 ` : ""}
 
+                                <div class="mt-2">Overpaid Accounts: <strong>${reportData.POWER.op}</strong></div>
+                                ${reportData.POWER.opNames && reportData.POWER.opNames.length > 0 ? `<div style="font-size: 11px !important; color: #0c4a6e; background-color: #e0f2fe; padding: 4px; border-radius: 4px; margin-top: 4px;"><strong>Overpaid List:</strong><ul style="margin: 0; padding-left: 14px;">${reportData.POWER.opNames.map(n => `<li>${n}</li>`).join('')}</ul></div>` : ""}
                                 <div class="mt-2">No Bill Accounts: <strong>${reportData.POWER.nb}</strong></div>
                                 <div class="mt-2">Unpaid Accounts:</div>
                                 <div style="padding-left: 10px;">• 1-Month: <strong>${reportData.POWER.u1}</strong></div>
@@ -1182,6 +1211,7 @@
                                 <div style="font-size: 11px !important; color:#475569;">
                                     * Fully Paid: ${getPercent(reportData.POWER.fp, reportData.POWER.total)}<br>
                                     * Partially Paid: ${getPercent(reportData.POWER.pp, reportData.POWER.total)}<br>
+                                    * Overpaid: ${getPercent(reportData.POWER.op, reportData.POWER.total)}<br>
                                     * No Bill: ${getPercent(reportData.POWER.nb, reportData.POWER.total)}<br>
                                     * 1-Month: ${getPercent(reportData.POWER.u1, reportData.POWER.total)}<br>
                                     * 2+ Months: ${getPercent(reportData.POWER.u2, reportData.POWER.total)}
@@ -1200,6 +1230,8 @@
                                 </div>
                                 ` : ""}
 
+                                <div class="mt-2">Overpaid Accounts: <strong>${reportData.SCHOOLS.op}</strong></div>
+                                ${reportData.SCHOOLS.opNames && reportData.SCHOOLS.opNames.length > 0 ? `<div style="font-size: 11px !important; color: #0c4a6e; background-color: #e0f2fe; padding: 4px; border-radius: 4px; margin-top: 4px;"><strong>Overpaid List:</strong><ul style="margin: 0; padding-left: 14px;">${reportData.SCHOOLS.opNames.map(n => `<li>${n}</li>`).join('')}</ul></div>` : ""}
                                 <div class="mt-2">No Bill Accounts: <strong>${reportData.SCHOOLS.nb}</strong></div>
                                 <div class="mt-2">Unpaid Accounts:</div>
                                 <div style="padding-left: 10px;">• 1-Month: <strong>${reportData.SCHOOLS.u1}</strong></div>
@@ -1208,6 +1240,7 @@
                                 <div style="font-size: 11px !important; color:#475569;">
                                     * Fully Paid: ${getPercent(reportData.SCHOOLS.fp, reportData.SCHOOLS.total)}<br>
                                     * Partially Paid: ${getPercent(reportData.SCHOOLS.pp, reportData.SCHOOLS.total)}<br>
+                                    * Overpaid: ${getPercent(reportData.SCHOOLS.op, reportData.SCHOOLS.total)}<br>
                                     * No Bill: ${getPercent(reportData.SCHOOLS.nb, reportData.SCHOOLS.total)}<br>
                                     * 1-Month: ${getPercent(reportData.SCHOOLS.u1, reportData.SCHOOLS.total)}<br>
                                     * 2+ Months: ${getPercent(reportData.SCHOOLS.u2, reportData.SCHOOLS.total)}
@@ -1226,6 +1259,8 @@
                                 </div>
                                 ` : ""}
 
+                                <div class="mt-2">Overpaid Accounts: <strong>${reportData.STREETLIGHTS.op}</strong></div>
+                                ${reportData.STREETLIGHTS.opNames && reportData.STREETLIGHTS.opNames.length > 0 ? `<div style="font-size: 11px !important; color: #0c4a6e; background-color: #e0f2fe; padding: 4px; border-radius: 4px; margin-top: 4px;"><strong>Overpaid List:</strong><ul style="margin: 0; padding-left: 14px;">${reportData.STREETLIGHTS.opNames.map(n => `<li>${n}</li>`).join('')}</ul></div>` : ""}
                                 <div class="mt-2">No Bill Accounts: <strong>${reportData.STREETLIGHTS.nb}</strong></div>
                                 <div class="mt-2">Unpaid Accounts:</div>
                                 <div style="padding-left: 10px;">• 1-Month: <strong>${reportData.STREETLIGHTS.u1}</strong></div>
@@ -1234,6 +1269,7 @@
                                 <div style="font-size: 11px !important; color:#475569;">
                                     * Fully Paid: ${getPercent(reportData.STREETLIGHTS.fp, reportData.STREETLIGHTS.total)}<br>
                                     * Partially Paid: ${getPercent(reportData.STREETLIGHTS.pp, reportData.STREETLIGHTS.total)}<br>
+                                    * Overpaid: ${getPercent(reportData.STREETLIGHTS.op, reportData.STREETLIGHTS.total)}<br>
                                     * No Bill: ${getPercent(reportData.STREETLIGHTS.nb, reportData.STREETLIGHTS.total)}<br>
                                     * 1-Month: ${getPercent(reportData.STREETLIGHTS.u1, reportData.STREETLIGHTS.total)}<br>
                                     * 2+ Months: ${getPercent(reportData.STREETLIGHTS.u2, reportData.STREETLIGHTS.total)}
@@ -1252,6 +1288,8 @@
                                 </div>
                                 ` : ""}
 
+                                <div class="mt-2">Overpaid Accounts: <strong>${reportData.NET_METERING.op}</strong></div>
+                                ${reportData.NET_METERING.opNames && reportData.NET_METERING.opNames.length > 0 ? `<div style="font-size: 11px !important; color: #0c4a6e; background-color: #e0f2fe; padding: 4px; border-radius: 4px; margin-top: 4px;"><strong>Overpaid List:</strong><ul style="margin: 0; padding-left: 14px;">${reportData.NET_METERING.opNames.map(n => `<li>${n}</li>`).join('')}</ul></div>` : ""}
                                 <div class="mt-2">No Bill Accounts: <strong>${reportData.NET_METERING.nb}</strong></div>
                                 <div class="mt-2">Unpaid Accounts:</div>
                                 <div style="padding-left: 10px;">• 1-Month: <strong>${reportData.NET_METERING.u1}</strong></div>
@@ -1260,6 +1298,7 @@
                                 <div style="font-size: 11px !important; color:#475569;">
                                     * Fully Paid: ${getPercent(reportData.NET_METERING.fp, reportData.NET_METERING.total)}<br>
                                     * Partially Paid: ${getPercent(reportData.NET_METERING.pp, reportData.NET_METERING.total)}<br>
+                                    * Overpaid: ${getPercent(reportData.NET_METERING.op, reportData.NET_METERING.total)}<br>
                                     * No Bill: ${getPercent(reportData.NET_METERING.nb, reportData.NET_METERING.total)}<br>
                                     * 1-Month: ${getPercent(reportData.NET_METERING.u1, reportData.NET_METERING.total)}<br>
                                     * 2+ Months: ${getPercent(reportData.NET_METERING.u2, reportData.NET_METERING.total)}
@@ -1374,6 +1413,7 @@
                     <ul style="list-style-type: square; padding-left: 20px;">
                         <li>Fully Paid Accounts: <strong>${overallFP} (${getPercent(overallFP, overallTotal)})</strong></li>
                         <li>With Partial Payment: <strong>${overallPP} (${getPercent(overallPP, overallTotal)})</strong></li>
+                        <li>Overpaid Accounts: <strong>${overallOP} (${getPercent(overallOP, overallTotal)})</strong></li>
                         <li>No Bill: <strong>${overallNB} (${getPercent(overallNB, overallTotal)})</strong></li>
                         <li>With 1-Month Balance: <strong>${overallU1} (${getPercent(overallU1, overallTotal)})</strong></li>
                         <li>With 2+ Months Balance: <strong>${overallU2} (${getPercent(overallU2, overallTotal)})</strong></li>
