@@ -4,75 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CEPALCO Collection Monitoring Update System</title>
-    <!-- Tailwind CSS (same as report page) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="theme.css">
     <script src="auth.js" data-guard="collections,accounts,contacts"></script>
-    <style>
-        body{background:#eef1f5;font-family:'Inter',system-ui,sans-serif}
-        header.no-print{position:sticky;top:0;z-index:20}
-        .no-print .rounded-xl,.card{border-radius:14px}
-        .card{background:#fff;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(15,23,42,.08)}
-        select:focus,input:focus{outline:2px solid #2563eb;outline-offset:1px}
-        select,input[type=text],input:not([type]){border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:6px 10px;font-size:13px}
-        [hidden]{display:none!important}
-        .navtab{display:inline-block;padding:12px 0;border:0;border-bottom:3px solid transparent;border-radius:0;background:none;font:inherit;font-size:14px;font-weight:500;color:#475569;cursor:pointer;text-decoration:none}
-        .navtab:hover{color:#1e3a8a}
-        .navtab.on{border-bottom-color:#2563eb;color:#1e3a8a;font-weight:700}
-        .kpi small{display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#64748b}
-        .kpi b{display:block;margin-top:2px;font-size:24px;font-weight:700;color:#1e293b;font-variant-numeric:tabular-nums}
-        .tw{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;background:#fff;border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 1px 3px rgba(15,23,42,.08)}
-        .tw,.tws{scrollbar-width:auto;scrollbar-color:#64748b #e2e8f0}
-        .tw::-webkit-scrollbar,.tws::-webkit-scrollbar{height:14px}.tw::-webkit-scrollbar-track,.tws::-webkit-scrollbar-track{background:#e2e8f0;border-radius:7px}.tw::-webkit-scrollbar-thumb,.tws::-webkit-scrollbar-thumb{background:#64748b;border-radius:7px;border:2px solid #e2e8f0}
-        .tws{display:none;overflow-x:scroll;overflow-y:hidden;max-width:100%;margin-bottom:4px}.tws div{height:1px}
-        /* first column stays in view while sliding sideways */
-        #sth th:first-child,#tb td:first-child,#con th:first-child,#ctb td:first-child,#agrid .fz{position:sticky;left:0;z-index:1;background:#fff;box-shadow:1px 0 0 #e2e8f0}
-        #sth th:first-child,#con th:first-child,#agrid th.fz{background:#f1f5f9;z-index:3}
-        table{border-collapse:collapse;width:100%;font-size:13px}
-        th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #e2e8f0;white-space:nowrap}
-        th{background:#f1f5f9;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#334155}
-        td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
-        .tag{padding:2px 8px;border-radius:10px;font-size:12px;font-weight:500}
-        .Fu{background:#dcfce7;color:#166534}.Ov{background:#dbeafe;color:#1e40af}.Pa{background:#fef9c3;color:#854d0e}.No{background:#fee2e2;color:#991b1b}.Nob{background:#e2e8f0;color:#334155}
-        .late{color:#b91c1c}.early{color:#a16207}
-        .box{height:270px;position:relative}
-        .fd{position:relative}.fd summary{list-style:none;cursor:pointer;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:6px 12px;font-size:13px;font-weight:600;color:#334155}
-        .fd summary::-webkit-details-marker{display:none}.fd summary::after{content:" \25BE"}.fd[open] summary,.fd.on summary{border-color:#2563eb;color:#1e3a8a}
-        .fp{position:absolute;z-index:10;margin-top:4px;min-width:200px;max-height:260px;overflow:auto;background:#fff;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.15);padding:8px;font-size:13px}
-        .fp label{display:flex;gap:8px;align-items:center;padding:4px 6px;cursor:pointer;white-space:nowrap;border-radius:6px}.fp label:hover{background:#f1f5f9}
-        #agrid th{cursor:pointer;user-select:none}
-        #agrid th:hover{color:#1e3a8a}
-        td.ed{cursor:cell}td.ed:hover{background:#eff6ff}td.cal{background:#f8fafc;color:#64748b}
-        td.cell-ed{padding:3px 4px}
-        input.cell{width:100%;min-width:110px;border:2px solid #2563eb;border-radius:4px;padding:2px 6px;font-size:13px;background:#fff}
-        .xb{color:#b91c1c;font-weight:700;background:none;border:0;cursor:pointer;padding:0 6px}.xb:hover{background:#fee2e2;border-radius:4px}
-        .btn{border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:6px 12px;font-size:13px;font-weight:600;color:#334155;cursor:pointer}.btn:hover{background:#f1f5f9}.btn:disabled{opacity:.4;cursor:default}
-        .btn.pri{background:#1e3a8a;border-color:#1e3a8a;color:#fff}.btn.pri:hover{background:#1e40af}
-        .fi{margin-top:4px;width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:6px 10px;font-size:13px;background:#fff}.fi:disabled{background:#f1f5f9}
-    </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
+<body>
 
-    <!-- Header Navigation Bar -->
-    <header class="bg-blue-900 text-white shadow-md no-print">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="bg-yellow-400 p-2.5 rounded-lg text-blue-900 font-black tracking-wider text-xl">CEPALCO</div>
-                <div>
-                    <h1 class="text-lg font-bold tracking-tight">Collection Monitoring Update System</h1>
-                    <p class="text-xs text-blue-200">Billing &amp; Collection Department • Accounts Monitor</p>
-                </div>
+    <header class="app-header no-print">
+        <div class="wrap">
+            <a class="brand" href="index.html" title="CEPALCO"><img src="cepalco-logo.png" alt="CEPALCO – Cagayan Electric Power &amp; Light Company, Inc."></a>
+            <div class="app-title">
+                <h1>Collection Monitoring Update System</h1>
+                <p>Billing &amp; Collection Department &nbsp;|&nbsp; Accounts Monitor</p>
             </div>
-            <div class="text-right text-xs text-slate-300 flex items-center gap-3">
-                <span id="st">No data loaded</span><span id="authSlot"></span>
-                <label data-admin hidden class="bg-yellow-400 text-blue-900 font-semibold rounded-lg px-4 py-2 cursor-pointer hover:bg-yellow-300 text-sm">Load Excel<input type="file" id="f" accept=".xlsx,.xlsm" hidden></label>
+            <div class="app-user">
+                <div class="u1"><span class="loc">Cagayan de Oro City, Northern Mindanao</span><span id="authSlot"></span></div>
+                <div class="u2"><span id="st">No data loaded</span><label data-admin hidden class="btn-load">Load Excel<input type="file" id="f" accept=".xlsx,.xlsm" hidden></label></div>
             </div>
         </div>
     </header>
 
-    <!-- Menu bar (same on every page) -->
-    <nav class="bg-white border-b border-slate-200 no-print">
-        <div class="max-w-7xl mx-auto px-4 flex gap-6">
+    <nav class="app-nav no-print">
+        <div class="wrap">
             <button class="navtab on" data-t="col" data-feature="collections">Collections</button>
             <button class="navtab" data-t="acc" data-feature="accounts">Accounts</button>
             <button class="navtab" data-t="con" data-feature="contacts">Contact Directory</button>
@@ -81,69 +35,79 @@
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-4 py-6">
-    <section id="col">
-        <div class="flex flex-wrap items-center gap-4 mb-4">
-            <label class="text-sm font-semibold text-slate-700">Month paid <select id="mo"></select></label>
-            <span id="mn" class="text-xs text-slate-500">Payments are counted in the month of the payment date, not the due date.</span>
+    <main class="wrap">
+    <section id="col" class="stack">
+        <div class="card toolbar">
+            <label class="lbl">Month paid <select id="mo"></select></label>
+            <span class="sep"></span>
+            <div id="fl" class="toolbar" style="padding:0"></div>
+            <span class="grow"></span>
+            <span id="mn" class="meta">Payments are counted in the month of the payment date, not the due date.</span>
         </div>
-        <div id="fl" class="flex flex-wrap items-center gap-3 mb-4"></div>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div class="card kpi p-5"><small>Total billed</small><b id="k1"></b></div>
-            <div class="card kpi p-5"><small id="l2">Collected</small><b id="k2"></b></div>
-            <div class="card kpi p-5"><small>Uncollected</small><b id="k3"></b></div>
-            <div class="card kpi p-5"><small>Collection rate</small><b id="k4"></b></div>
+        <div class="grid4">
+            <div class="card kpi"><small>Total billed</small><b id="k1"></b></div>
+            <div class="card kpi"><small id="l2">Collected</small><b id="k2"></b></div>
+            <div class="card kpi"><small>Uncollected</small><b id="k3"></b></div>
+            <div class="card kpi"><small>Collection rate</small><b id="k4"></b></div>
+            <div class="card kpi dark"><small>Arrears total</small><b id="k5"></b></div>
+            <div class="card kpi dark"><small>Latest bill total</small><b id="k6"></b></div>
+            <div class="card kpi dark"><small>Total latest uncollected</small><b id="k7"></b></div>
+            <div class="card kpi dark"><small>Total arrears uncollected</small><b id="k8"></b></div>
         </div>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div class="card kpi p-5"><small>Arrears total</small><b id="k5"></b></div>
-            <div class="card kpi p-5"><small>Latest bill total</small><b id="k6"></b></div>
-            <div class="card kpi p-5"><small>Total latest uncollected</small><b id="k7"></b></div>
-            <div class="card kpi p-5"><small>Total arrears uncollected</small><b id="k8"></b></div>
-        </div>
-        <div id="em" class="card p-10 text-center text-slate-500 mb-6">No data yet. An admin needs to load the ACCOUNTS_MASTERLIST workbook.</div>
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="card p-5 lg:col-span-2"><h2 class="font-bold text-slate-800 text-base mb-2">Collected by month paid</h2><div class="box"><canvas id="c1"></canvas></div></div>
-            <div class="card p-5"><h2 class="font-bold text-slate-800 text-base mb-2">Collected vs uncollected</h2><div class="box"><canvas id="c2"></canvas></div></div>
-            <div class="card p-5 lg:col-span-3"><h2 class="font-bold text-slate-800 text-base mb-2">By customer type</h2><div class="box"><canvas id="c3"></canvas></div></div>
+        <div id="em" class="card empty">No data yet. An admin needs to load the ACCOUNTS_MASTERLIST workbook.</div>
+        <div class="grid2">
+            <div class="card pad"><h2>Collected by month paid</h2><div class="box"><canvas id="c1"></canvas></div></div>
+            <div class="card pad"><h2>Collected vs uncollected</h2><div class="box"><canvas id="c2"></canvas></div></div>
+            <div class="card pad span-all"><h2>By customer type</h2><div class="box"><canvas id="c3"></canvas></div></div>
         </div>
     </section>
-    <section id="acc" hidden>
-        <div id="accView">
-        <div class="flex flex-wrap items-center gap-3 mb-4">
-            <input id="q" placeholder="Search name or contract"><span id="sflt" class="flex flex-wrap items-center gap-3"></span><select id="sb"><option value="">All accounts</option><option value="u">Uncollected</option><option value="c">Collected</option></select><span id="cnt" class="text-sm text-slate-500"></span>
+
+    <section id="acc" class="stack" hidden>
+        <div id="accView" class="stack">
+            <div class="card toolbar">
+                <input id="q" placeholder="Search name or contract" style="min-width:260px">
+                <span class="sep"></span>
+                <span id="sflt" class="toolbar" style="padding:0"></span>
+                <select id="sb"><option value="">All accounts</option><option value="u">Uncollected</option><option value="c">Collected</option></select>
+                <span class="grow"></span><span id="cnt" class="meta"></span>
+            </div>
+            <div class="tw"><table id="sumtbl"><thead id="sth"></thead><tbody id="tb"></tbody></table></div>
         </div>
-        <div class="tw"><table><thead id="sth"></thead><tbody id="tb"></tbody></table></div>
-        </div>
-        <div id="accEdit" hidden>
-            <div id="aflt" class="flex flex-wrap items-center gap-3 mb-2"></div>
-            <div class="flex flex-wrap items-center gap-3 mb-2">
-                <input id="aq" placeholder="Search name, contract or CLN" style="min-width:240px"><select id="abl"></select>
-                <span id="acnt" class="text-sm text-slate-500"></span><span class="flex-1"></span>
+        <div id="accEdit" class="stack" hidden>
+            <div class="card toolbar">
+                <input id="aq" placeholder="Search name, contract or CLN" style="min-width:260px">
+                <select id="abl"></select>
+                <span class="sep"></span>
+                <div id="aflt" class="toolbar" style="padding:0"></div>
+                <span class="grow"></span>
+                <span id="acnt" class="meta"></span>
                 <button id="aadd" class="btn pri" hidden>+ Add account</button>
                 <button id="aexp" class="btn" title="Download the current data as an Excel file (backup)">Export to Excel</button>
             </div>
-            <p class="text-xs text-slate-500 mb-2"><span id="ahint"></span> <span id="amsg" class="font-semibold"></span></p>
+            <p class="hint"><span id="ahint"></span> <span id="amsg" class="font-semibold"></span></p>
             <div class="tw"><table id="agrid"></table></div>
-            <div id="apg" class="flex items-center gap-3 mt-3 text-sm"></div>
+            <div id="apg" class="pager"></div>
         </div>
     </section>
-    <section id="con" hidden>
-        <div class="flex flex-wrap items-center gap-3 mb-2">
-            <input id="cq" placeholder="Search customer, contract, email or contact person" style="min-width:300px">
+
+    <section id="con" class="stack" hidden>
+        <div class="card toolbar">
+            <input id="cq" placeholder="Search customer, contract, email or contact person" style="min-width:340px">
             <select id="cf"><option value="">All accounts</option><option value="nm">Missing email address</option><option value="np">Missing contact person</option><option value="ok">Complete (email + contact person)</option></select>
-            <span id="ccnt" class="text-sm text-slate-500"></span>
+            <span class="grow"></span><span id="ccnt" class="meta"></span>
         </div>
-        <p class="text-xs text-slate-500 mb-2">Built from the Accounts list, so a new account appears here automatically. <span id="chint"></span> <span id="cmsg" class="font-semibold"></span></p>
-        <div class="tw"><table><thead><tr><th>Customer name</th><th>Contract number</th><th>Phone number</th><th>Email address</th><th>Contact person</th></tr></thead><tbody id="ctb"></tbody></table></div>
-        <div id="cpg" class="flex items-center gap-3 mt-3 text-sm"></div>
+        <p class="hint">Built from the Accounts list, so a new account appears here automatically. <span id="chint"></span> <span id="cmsg" class="font-semibold"></span></p>
+        <div class="tw"><table><thead id="con-h"><tr><th>Customer name</th><th>Contract number</th><th>Phone number</th><th>Email address</th><th>Contact person</th></tr></thead><tbody id="ctb"></tbody></table></div>
+        <div id="cpg" class="pager"></div>
     </section>
-    <div id="am" hidden class="fixed inset-0 z-30 bg-slate-900/50 flex items-start justify-center overflow-auto p-4">
-        <form id="af" class="bg-white rounded-xl shadow-xl w-full max-w-3xl mt-8 p-5">
-            <h2 class="font-bold text-base mb-1">Add account</h2>
-            <p class="text-xs text-slate-500 mb-3">Customer name is required. Total balance is calculated when Arrears is filled, and Remaining balance is always calculated.</p>
-            <div id="afl" class="grid grid-cols-2 md:grid-cols-3 gap-3"></div>
-            <p id="aer" class="text-sm text-red-600 mt-3 min-h-[1.25rem]"></p>
-            <div class="flex justify-end gap-2 mt-2"><button type="button" id="acancel" class="btn">Cancel</button><button class="btn pri">Save account</button></div>
+
+    <div id="am" hidden class="modal">
+        <form id="af">
+            <h2>Add account</h2>
+            <p class="sub" style="margin:0">Customer name is required. Total balance is calculated when Arrears is filled, and Remaining balance is always calculated.</p>
+            <div id="afl" class="fgrid"></div>
+            <p id="aer" class="err" style="text-align:left;min-height:1.25rem;margin:12px 0 0"></p>
+            <div class="actions"><button type="button" id="acancel" class="btn">Cancel</button><button class="btn pri">Save account</button></div>
         </form>
     </div>
     </main>
@@ -157,6 +121,7 @@ const dt=v=>{if(v==null||v==='')return null;let d=v instanceof Date?v:typeof v==
 const mk=d=>d?d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'):'';
 const ml=k=>{if(k==='nodate')return'No date';const[y,m]=k.split('-');return new Date(+y,+m-1,1).toLocaleDateString('en',{month:'short',year:'numeric'})};
 const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
+Chart.defaults.font.family="Inter,system-ui,sans-serif";Chart.defaults.color='#3A3A3A';Chart.defaults.plugins.legend.position='bottom';
 let recs=[],cols=[],rows=[],ch={},rsCol='RATE SCHED';
 const ld=v=>{if(!v)return null;const[y,m,d]=String(v).split('-').map(Number);return new Date(y,m-1,d)},ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const has=(o,k)=>o[k]!=null&&o[k]!=='';
@@ -196,7 +161,7 @@ setRows(j.r||[],j.r&&j.r.length?j.n+' \u00b7 '+j.r.length+' accounts'+(j.at?' \u
 const FG=[['area','Area',r=>r.area],['type','Customer type',r=>r.type],['rs','Rate schedule',r=>r.rs]],sel={area:new Set(),type:new Set(),rs:new Set()},fv=v=>String(v??'').trim();
 const F=()=>rows.filter(r=>FG.every(([k,,g])=>!sel[k].size||sel[k].has(fv(g(r)))));
 function drawF(){FG.forEach(([k])=>sel[k].clear());
-$('#fl').innerHTML='<span class="text-sm font-semibold text-slate-700">Filter</span>'+FG.map(([k,l,g])=>{const vs=[...new Set(rows.map(r=>fv(g(r))))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+$('#fl').innerHTML='<span class="fl-title">Filter</span>'+FG.map(([k,l,g])=>{const vs=[...new Set(rows.map(r=>fv(g(r))))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
 const body=k==='rs'&&vs.length===1&&vs[0]===''?'<i class="text-slate-500">'+(rsCol?'Column "'+esc(rsCol)+'" has no values.':'No rate schedule saved yet. Admin: reload the Excel file.')+'</i>':vs.map(v=>`<label><input type="checkbox" data-k="${k}" value="${esc(v)}"> ${v?esc(v):'(blank)'}</label>`).join('');
 return `<details class="fd" id="fd-${k}"><summary id="fs-${k}">${l}</summary><div class="fp">${body}</div></details>`}).join('')+'<button type="button" id="fx">Clear filters</button><span id="fc" class="text-xs text-slate-500"></span>'}
 function sumF(){FG.forEach(([k,l])=>{$('#fs-'+k).textContent=l+(sel[k].size?' ('+sel[k].size+')':'');$('#fd-'+k).classList.toggle('on',sel[k].size>0)});$('#fc').textContent='Showing '+F().length+' of '+rows.length+' accounts'}
@@ -213,10 +178,10 @@ const lbU=r=>Math.min(Math.max(r.lb||0,0),Math.max(r.rem,0)),arU=r=>Math.max(r.r
 $('#k5').textContent=php(sum(rows,r=>r.ar||0));$('#k6').textContent=php(sum(rows,r=>r.lb||0));$('#k7').textContent=php(sum(rows,lbU));$('#k8').textContent=php(sum(rows,arU));
 $('#l2').textContent=sel==='all'?'Collected (all months)':'Collected in '+ml(sel);
 const ks=Object.keys(by).sort();
-draw('c1',{type:'bar',data:{labels:ks.map(ml),datasets:[{data:ks.map(k=>by[k]),backgroundColor:ks.map(k=>k===sel?'#eab308':'#1e3a8a')}]},options:opt});
-draw('c2',{type:'doughnut',data:{labels:['Collected','Uncollected'],datasets:[{data:[all,unc],backgroundColor:['#1e3a8a','#facc15']}]},options:{maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom'},tooltip:{callbacks:{label:c=>php(c.parsed)}}}}});
+draw('c1',{type:'bar',data:{labels:ks.map(ml),datasets:[{data:ks.map(k=>by[k]),backgroundColor:ks.map(k=>k===sel?'#141414':'#E8171A')}]},options:opt});
+draw('c2',{type:'doughnut',data:{labels:['Collected','Uncollected'],datasets:[{data:[all,unc],backgroundColor:['#E8171A','#141414'],borderWidth:2,borderColor:'#fff'}]},options:{maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom'},tooltip:{callbacks:{label:c=>php(c.parsed)}}}}});
 const ts=[...new Set(rows.map(r=>r.type))].sort(),inM=r=>sel==='all'||r.pm===sel;
-draw('c3',{type:'bar',data:{labels:ts,datasets:[{label:'Collected',data:ts.map(t=>sum(rows.filter(r=>r.type===t&&inM(r)),r=>r.paid)),backgroundColor:'#1e3a8a'},{label:'Uncollected',data:ts.map(t=>sum(rows.filter(r=>r.type===t),r=>Math.max(r.rem,0))),backgroundColor:'#facc15'}]},options:{...opt,plugins:{...opt.plugins,legend:{display:true}}}});table()}
+draw('c3',{type:'bar',data:{labels:ts,datasets:[{label:'Collected',data:ts.map(t=>sum(rows.filter(r=>r.type===t&&inM(r)),r=>r.paid)),backgroundColor:'#E8171A'},{label:'Uncollected',data:ts.map(t=>sum(rows.filter(r=>r.type===t),r=>Math.max(r.rem,0))),backgroundColor:'#141414'}]},options:{...opt,plugins:{...opt.plugins,legend:{display:true}}}});table()}
 /* Accounts summary table (everyone who can view Accounts): filters by Area / Rate schedule / Customer type, Excel-style heading sort */
 const SC=[['Customer','name','t'],['Type','type','t'],['Area','area','n'],['Rate sched','rs','n'],['Contract','cn','n'],['Due','due','d'],['Months unpaid','mu','n',1],['Total balance','total','n',1],['Paid','paid','n',1],['Month paid','pm','d'],['Status','st','t'],['Timing','tm','t'],['Remaining','rem','n',1]];
 const SF=[['area','Area',r=>fv(r.area)],['rs','Rate schedule',r=>fv(r.rs)],['type','Customer type',r=>fv(r.type)]],ssel={area:new Set(),rs:new Set(),type:new Set()};let ss={k:null,dir:1},ssig='';
@@ -226,15 +191,15 @@ if(v==null||v==='')return null;if(kd==='n'){const n=typeof v==='number'?v:Number
 const skind=([,k,kd])=>kd==='n'&&rows.some(r=>r[k]!=null&&r[k]!==''&&sval(r,k,'n')===null)?'t':kd;
 function drawS(){const o=SF.map(([,,g])=>[...new Set(rows.map(g))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}))),sg=JSON.stringify(o);if(sg===ssig)return;ssig=sg;
 SF.forEach(([k],i)=>[...ssel[k]].forEach(v=>{if(!o[i].includes(v))ssel[k].delete(v)}));
-$('#sflt').innerHTML=SF.map(([k,l],i)=>`<details class="fd${ssel[k].size?' on':''}" data-k="${k}"><summary>${l}${ssel[k].size?' ('+ssel[k].size+')':''}</summary><div class="fp">${o[i].map(v=>`<label><input type="checkbox" value="${esc(v)}" ${ssel[k].has(v)?'checked':''}> ${v?esc(v):'(blank)'}</label>`).join('')}</div></details>`).join('')+'<button type="button" id="sx">Clear filters</button>'}
+$('#sflt').innerHTML='<span class="fl-title">Filter</span>'+SF.map(([k,l],i)=>`<details class="fd${ssel[k].size?' on':''}" data-k="${k}"><summary>${l}${ssel[k].size?' ('+ssel[k].size+')':''}</summary><div class="fp">${o[i].map(v=>`<label><input type="checkbox" value="${esc(v)}" ${ssel[k].has(v)?'checked':''}> ${v?esc(v):'(blank)'}</label>`).join('')}</div></details>`).join('')+'<button type="button" id="sx">Clear filters</button>'}
 function table(){const sel=$('#mo').value,q=$('#q').value.toLowerCase(),s=$('#sb').value;
 let l=rows.filter(r=>(sel==='all'||r.pm===sel)&&SF.every(([k,,g])=>!ssel[k].size||ssel[k].has(g(r)))&&(!s||(s==='u'?r.rem>0:r.paid>0))&&(!q||(r.name+' '+r.cn).toLowerCase().includes(q)));
 const sc=SC.find(c=>c[1]===ss.k);
 if(sc){const kd=skind(sc);l=l.map(r=>[r,sval(r,sc[1],kd)]).sort((x,y)=>{const A=x[1],B=y[1];if(A==null&&B==null)return 0;if(A==null)return 1;if(B==null)return -1;return(typeof A==='number'&&typeof B==='number'?A-B:String(A).localeCompare(String(B),undefined,{numeric:true,sensitivity:'base'}))*ss.dir}).map(x=>x[0])}
 else l.sort((a,b)=>b.rem-a.rem);
-$('#sth').innerHTML='<tr>'+SC.map(c=>{const kd=skind(c),on=ss.k===c[1],ar=!on?'':kd==='d'?(ss.dir<0?' \u25BC newest':' \u25B2 oldest'):kd==='n'?(ss.dir<0?' \u25BC 9\u21921':' \u25B2 1\u21929'):(ss.dir>0?' \u25B2 A\u2192Z':' \u25BC Z\u2192A');return`<th data-sort="${c[1]}" class="${c[3]?'n':''}" style="cursor:pointer;user-select:none" title="Click to sort">${c[0]}${ar}</th>`}).join('')+'</tr>';
+$('#sth').innerHTML='<tr>'+SC.map(c=>{const kd=skind(c),on=ss.k===c[1],ar=!on?'':kd==='d'?(ss.dir<0?' \u25BC newest':' \u25B2 oldest'):kd==='n'?(ss.dir<0?' \u25BC 9\u21921':' \u25B2 1\u21929'):(ss.dir>0?' \u25B2 A\u2192Z':' \u25BC Z\u2192A');return`<th data-sort="${c[1]}" class="${c[3]?'n':''}" title="Click to sort">${c[0]}${ar}</th>`}).join('')+'</tr>';
 $('#cnt').textContent=l.length+' accounts';
-$('#tb').innerHTML=l.slice(0,1000).map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.type)}</td><td>${esc(r.area)}</td><td>${esc(r.rs)}</td><td>${esc(r.cn)}</td><td>${r.due?r.due.toLocaleDateString('en-PH'):''}</td><td class="n">${r.mu||''}</td><td class="n">${php(r.total)}</td><td class="n">${php(r.paid)}</td><td>${r.pm?ml(r.pm):''}</td><td><span class="tag ${({'Fully paid':'Fu','Partially paid':'Pa','Overpaid':'Ov','No payment':'No','No billing':'Nob'})[r.st]}">${r.st}</span></td><td class="${r.tm.toLowerCase()}">${r.tm}</td><td class="n">${php(r.rem)}</td></tr>`).join('')}
+$('#tb').innerHTML=l.slice(0,1000).map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.type)}</td><td>${esc(r.area)}</td><td>${esc(r.rs)}</td><td>${esc(r.cn)}</td><td class="dt">${r.due?r.due.toLocaleDateString('en-PH'):''}</td><td class="n">${r.mu||''}</td><td class="n">${php(r.total)}</td><td class="n">${php(r.paid)}</td><td class="dt">${r.pm?ml(r.pm):''}</td><td class="tg"><span class="tag ${({'Fully paid':'Fu','Partially paid':'Pa','Overpaid':'Ov','No payment':'No','No billing':'Nob'})[r.st]}">${r.st}</span></td><td class="tg ${r.tm.toLowerCase()}">${r.tm}</td><td class="n">${php(r.rem)}</td></tr>`).join('')}
 $('#sth').onclick=e=>{const th=e.target.closest('th[data-sort]');if(!th)return;const k=th.dataset.sort,kd=skind(SC.find(c=>c[1]===k)),first=kd==='t'?1:-1;
 if(ss.k!==k){ss.k=k;ss.dir=first}else if(ss.dir===first)ss.dir=-first;else ss.k=null;table()};
 $('#sflt').onchange=e=>{const t=e.target,d=t.closest('details');if(!d)return;const k=d.dataset.k;t.checked?ssel[k].add(t.value):ssel[k].delete(t.value);

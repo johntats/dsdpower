@@ -7,7 +7,7 @@ function pager(el, total, page, size, go) {
   el.onclick = e => { const b = e.target.closest('button'); if (b && !b.disabled) go(+b.dataset.p); };
 }
 function flash(el, text, bad) {
-  el.textContent = text; el.className = 'font-semibold ' + (bad ? 'text-red-600' : 'text-emerald-700');
+  el.textContent = text; el.className = 'font-semibold'; el.style.color = bad ? 'var(--red-d)' : 'var(--ok)';
   clearTimeout(el._t); if (!bad && text !== 'Saving\u2026') el._t = setTimeout(() => { el.textContent = ''; }, 3000);
 }
 /* A second scrollbar above a wide table, kept in sync with the one below, so sideways scrolling is easy to find. */
@@ -74,7 +74,7 @@ const AE = (() => {
   function rowHtml(r) {
     const u = can('update');
     return `<tr data-id="${esc(r._id)}">` + (can('delete') ? '<td><button class="xb" data-del="1" title="Delete this account">\u2715</button></td>' : '') +
-      cols.map(([k], i) => `<td data-i="${i}" class="${k === 'CUSTOMER NAME' ? 'fz ' : ''}${MONEY.has(k) ? 'n ' : ''}${locked(r, k) ? 'cal' : u ? 'ed' : ''}"${locked(r, k) ? ' title="Calculated automatically"' : ''}>${esc(fmt(r, k))}</td>`).join('') + '</tr>';
+      cols.map(([k], i) => `<td data-i="${i}" class="${k === 'CUSTOMER NAME' ? 'fz ' : ''}${MONEY.has(k) ? 'n ' : ''}${typeOf(k) === 'd' ? 'dt ' : ''}${locked(r, k) ? 'cal' : u ? 'ed' : ''}"${locked(r, k) ? ' title="Calculated automatically"' : ''}>${esc(fmt(r, k))}</td>`).join('') + '</tr>';
   }
   // Excel-style: columns of numbers (and dates) sort highest / newest first, text sorts A to Z
   const isNum = k => { const t = typeOf(k); return t === 'd' || (t !== 's' && recs.every(r => r[k] == null || typeof r[k] === 'number')); };
@@ -85,7 +85,7 @@ const AE = (() => {
     const opts = FK.map(([k]) => [...new Set(recs.map(r => vs(r[k])))].sort((x, y) => x.localeCompare(y, undefined, { numeric: true }))), s = JSON.stringify(opts);
     if (s === sig) return; sig = s;                      // rebuild the dropdowns only when the available values change, so they stay open while ticking
     FK.forEach(([k]) => [...sel[k]].forEach(v => { if (!opts[FK.findIndex(f => f[0] === k)].includes(v)) sel[k].delete(v); }));
-    $a('#aflt').innerHTML = '<span class="text-sm font-semibold text-slate-700">Filter</span>' + FK.map(([k, l], i) =>
+    $a('#aflt').innerHTML = '<span class="fl-title">Filter</span>' + FK.map(([k, l], i) =>
       `<details class="fd" data-k="${esc(k)}"><summary>${l}${sel[k].size ? ' (' + sel[k].size + ')' : ''}</summary><div class="fp">${opts[i].map(v => `<label><input type="checkbox" value="${esc(v)}" ${sel[k].has(v) ? 'checked' : ''}> ${v ? esc(v) : '(blank)'}</label>`).join('')}</div></details>`).join('') +
       '<button type="button" class="btn" id="aclr">Clear filters</button>';
   }
@@ -147,7 +147,7 @@ const AE = (() => {
   function init() {
     const ed = isEd(); $a('#accEdit').hidden = !ed; $a('#accView').hidden = ed; if (!ed) return;
     $a('#aadd').hidden = !can('create');
-    $a('#ahint').textContent = can('update') ? 'Click a cell to edit it (Enter or Tab saves, Esc cancels, grey cells are calculated). Click a column heading to sort: A\u2192Z for text, highest first for numbers; click again to reverse, a third time to clear. Slide sideways with the scrollbar above the table, Shift + mouse wheel, or by swiping; the customer name stays in view.' : 'You can view this grid but not edit it.';
+    $a('#ahint').textContent = can('update') ? 'Click a cell to edit it (Enter or Tab saves, Esc cancels; grey cells are calculated). Click a heading to sort. Scroll sideways with the bar above the table; the customer name stays in view.' : 'You can view this grid but not edit it.';
     $a('#aq').oninput = $a('#abl').onchange = () => { st.page = 0; render(); };
     $a('#aflt').onchange = e => { const t = e.target, k = t.closest('details') && t.closest('details').dataset.k; if (!k) return; t.checked ? sel[k].add(t.value) : sel[k].delete(t.value); st.page = 0; syncFilterLabels(); render(); };
     $a('#aflt').onclick = e => { if (e.target.id !== 'aclr') return; FK.forEach(([k]) => sel[k].clear()); $a('#aflt').querySelectorAll('input').forEach(i => i.checked = false); syncFilterLabels(); st.page = 0; render(); };
@@ -170,7 +170,7 @@ const CT = (() => {
   const can = a => Auth.can('contacts', a), msg = (t, bad) => flash($c('#cmsg'), t, bad);
   const hasMail = v => !!v && /@/.test(v), okMail = v => /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(v);
   const mail = v => !v ? '<span class="text-slate-400">\u2014</span>' : hasMail(v)
-    ? v.split(/\s*[;,]\s*/).filter(Boolean).map(x => `<a class="text-blue-700 underline" href="mailto:${esc(x)}">${esc(x)}</a>`).join(', ')
+    ? v.split(/\s*[;,]\s*/).filter(Boolean).map(x => `<a class="underline" href="mailto:${esc(x)}">${esc(x)}</a>`).join(', ')
     : '<span class="text-slate-400 italic">' + (/^no email$/i.test(v.trim()) ? 'No email' : 'Has email, address not recorded') + '</span>';
   const phone = v => v ? esc(v) : '<span class="text-slate-400">\u2014</span>';
   const person = v => v ? esc(v) : '<span class="text-slate-400">\u2014</span>';

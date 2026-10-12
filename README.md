@@ -71,3 +71,5 @@ DN and JO tracker, priority and bill-on-site views, account detail page, AI anal
 - `report.html`: report generator (based on REPORT_BUILDER.html)
 - `netlify.toml`: Netlify settings
 - `.gitignore`: keeps Excel files out of GitHub
+- `theme.css`: shared CEPALCO look (colours, header, menu bar, tables, buttons) used by every page
+- `cepalco-logo.png`: CEPALCO logo shown in the header and on the sign-in page

@@ -14,7 +14,8 @@
     <!-- html2pdf for Direct PDF Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- Google Fonts for Aptos-like look or exact match if present -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="theme.css">
     <style>
         @font-face {
             font-family: 'Aptos';
@@ -74,42 +75,25 @@
                 margin: 0.5in;
             }
         }
-            body{background:#eef1f5}
-        header.no-print{position:sticky;top:0;z-index:20}
-        .no-print .rounded-xl{border-radius:14px}
-        .no-print .shadow-sm{box-shadow:0 1px 3px rgba(15,23,42,.08)}
-        #btnGenerate{font-size:13px;padding:10px 20px}
-        select:focus,input:focus{outline:2px solid #2563eb;outline-offset:1px}
-        #reportCanvasContainer{box-shadow:0 8px 30px rgba(15,23,42,.12)}
-        [hidden]{display:none!important}
-        .navtab{display:inline-block;padding:12px 0;border:0;border-bottom:3px solid transparent;border-radius:0;background:none;font:inherit;font-size:14px;font-weight:500;color:#475569;cursor:pointer;text-decoration:none}
-        .navtab:hover{color:#1e3a8a}
-        .navtab.on{border-bottom-color:#2563eb;color:#1e3a8a;font-weight:700}
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
+<body>
 
-    <!-- Header Navigation Bar -->
-    <header class="bg-blue-900 text-white shadow-md no-print">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <div class="bg-yellow-400 p-2.5 rounded-lg text-blue-900 font-black tracking-wider text-xl">
-                    CEPALCO
-                </div>
-                <div>
-                    <h1 class="text-lg font-bold tracking-tight">Collection Monitoring Update System</h1>
-                    <p class="text-xs text-blue-200">Billing & Collection Department • Automated Report Compiler</p>
-                </div>
+    <header class="app-header no-print">
+        <div class="wrap">
+            <a class="brand" href="index.html" title="CEPALCO"><img src="cepalco-logo.png" alt="CEPALCO – Cagayan Electric Power &amp; Light Company, Inc."></a>
+            <div class="app-title">
+                <h1>Collection Monitoring Update System</h1>
+                <p>Billing &amp; Collection Department &nbsp;|&nbsp; Automated Report Compiler</p>
             </div>
-            <div class="text-right text-xs text-slate-300">
-                <span>Cagayan de Oro City, Northern Mindanao</span><span id="authSlot" class="ml-3"></span>
+            <div class="app-user">
+                <div class="u1"><span class="loc">Cagayan de Oro City, Northern Mindanao</span><span id="authSlot"></span></div>
             </div>
         </div>
     </header>
 
-    <!-- Menu bar (same on every page) -->
-    <nav class="bg-white border-b border-slate-200 no-print">
-        <div class="max-w-7xl mx-auto px-4 flex gap-6">
+    <nav class="app-nav no-print">
+        <div class="wrap">
             <a class="navtab" href="index.html" data-feature="collections">Collections</a>
             <a class="navtab" href="index.html#acc" data-feature="accounts">Accounts</a>
             <a class="navtab" href="index.html#con" data-feature="contacts">Contact Directory</a>
@@ -118,226 +102,112 @@
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-4 py-6">
-        
-        <!-- CONTROL PANEL & STEPPING (Hidden during print) -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 no-print">
-            
-            <!-- Left Side controls: Loader, reference, and parameters -->
-            <div class="lg:col-span-5 space-y-6">
-                
-                <!-- STEP 1: LOAD & DETECT WITH EMBEDDED EXCEL REFERENCE -->
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                    <div class="flex items-center gap-2 mb-3">
-                        <span class="bg-blue-600 text-white font-bold rounded-full w-6 h-6 flex items-center justify-center text-sm">1</span>
-                        <h2 class="font-bold text-slate-800 text-base">Excel Masterlist Upload & Format</h2>
-                    </div>
-                    
-                    <p class="text-xs text-slate-500 mb-3">
-                        Upload your <code>.xlsx</code> or <code>.xlsm</code> master sheet. Ensure your spreadsheet contains matching column keywords.
-                    </p>
+    <main class="wrap stack">
 
-                    <!-- Row containing Upload Dropzone and Excel Layout Reference side-by-side -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Left Sub-card: Interactive drop area -->
-                        <div class="flex flex-col justify-between">
-                            <label class="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-lg py-6 px-3 cursor-pointer hover:border-blue-500 hover:bg-slate-50 transition-all h-full text-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-400 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V4a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                                </svg>
-                                <span class="text-xs font-semibold text-slate-600">Choose Masterlist</span>
-                                <span class="text-[9px] text-slate-400 mt-0.5">Accepts .xlsx, .xlsm</span>
-                                <input type="file" id="excelFile" class="hidden" accept=".xlsx, .xlsm">
-                            </label>
-                        </div>
-
-                        <!-- Right Sub-card: Direct Excel Layout format helper -->
-                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                            <h3 class="text-[10px] font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                Expected Excel Format
-                            </h3>
-                            <div class="overflow-x-auto text-[9px] text-slate-600 leading-tight">
-                                <table class="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr class="bg-slate-200 font-bold">
-                                            <th class="p-1 border border-slate-300">Column Keyword</th>
-                                            <th class="p-1 border border-slate-300">Expected Value</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td class="p-1 border border-slate-300 font-mono">Account Name</td>
-                                            <td class="p-1 border border-slate-300">Customer Corp Name</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="p-1 border border-slate-300 font-mono">Category</td>
-                                            <td class="p-1 border border-slate-300 font-semibold text-blue-800">POWER / SCHOOLS...</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="p-1 border border-slate-300 font-mono">Billing</td>
-                                            <td class="p-1 border border-slate-300 font-semibold text-orange-800">Standard / NO BILL</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="p-1 border border-slate-300 font-mono text-emerald-800">DN/ODAA</td>
-                                            <td class="p-1 border border-slate-300 italic text-emerald-800">OK / GEN / Partial</td>
-                                        </tr>
-                                        <tr>
-                                            <td class="p-1 border border-slate-300 font-mono">Amount Due</td>
-                                            <td class="p-1 border border-slate-300 font-semibold">Blank = Paid (Not 0)</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="fileInfo" class="mt-4 hidden p-3 bg-blue-50 text-blue-900 rounded-lg text-xs space-y-1">
-                        <p class="font-semibold text-emerald-700 flex items-center gap-1" id="loadedFileName">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                            File loaded successfully!
-                        </p>
-                        <div class="mt-2">
-                            <label class="block text-[10px] uppercase font-bold text-slate-500">Active Sheet Selection</label>
-                            <select id="sheetSelect" class="w-full mt-1 p-1.5 border border-blue-300 rounded bg-white text-xs text-blue-900 font-semibold"></select>
-                        </div>
+        <!-- Row 1: Step 1 | Step 2 (equal columns) -->
+        <div class="grid2 no-print">
+            <section class="card pad">
+                <h2 class="stp"><span class="step">1</span>Excel Masterlist Upload &amp; Format</h2>
+                <p class="sub" style="margin:0 0 14px">Upload your <code>.xlsx</code> or <code>.xlsm</code> master sheet. Ensure your spreadsheet contains matching column keywords.</p>
+                <div class="grid2">
+                    <label class="dz">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 13h6m-3-3v6m-9 1V4a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
+                        <b>Choose Masterlist</b>
+                        <span>Accepts .xlsx, .xlsm</span>
+                        <input type="file" id="excelFile" class="hidden" accept=".xlsx, .xlsm">
+                    </label>
+                    <div class="fmt">
+                        <h3>Expected Excel Format</h3>
+                        <table>
+                            <thead><tr><th>Column Keyword</th><th>Expected Value</th></tr></thead>
+                            <tbody>
+                                <tr><td>Account Name</td><td>Customer Corp Name</td></tr>
+                                <tr><td>Category</td><td><b>POWER / SCHOOLS...</b></td></tr>
+                                <tr><td>Billing</td><td><b>Standard / NO BILL</b></td></tr>
+                                <tr><td>DN/ODAA</td><td><i>OK / GEN / Partial</i></td></tr>
+                                <tr><td>Amount Due</td><td><b>Blank = Paid (Not 0)</b></td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-
-                <!-- STEP 2: METADATA & PARAMETERS WITH FULL WEEK SCOPE OPTIONS -->
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                    <div class="flex items-center gap-2 mb-3">
-                        <span class="bg-blue-600 text-white font-bold rounded-full w-6 h-6 flex items-center justify-center text-sm">2</span>
-                        <h2 class="font-bold text-slate-800 text-base">Report & Period Parameters</h2>
-                    </div>
-
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-medium text-slate-600 mb-1">Report Month</label>
-                                <select id="reportMonth" class="w-full p-2 border border-slate-300 rounded text-xs">
-                                    <option value="1">January</option>
-                                    <option value="2">February</option>
-                                    <option value="3">March</option>
-                                    <option value="4">April</option>
-                                    <option value="5">May</option>
-                                    <option value="6">June</option>
-                                    <option value="7">July</option>
-                                    <option value="8">August</option>
-                                    <option value="9">September</option>
-                                    <option value="10">October</option>
-                                    <option value="11">November</option>
-                                    <option value="12">December</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-slate-600 mb-1">Report Year</label>
-                                <select id="reportYear" class="w-full p-2 border border-slate-300 rounded text-xs">
-                                    <option value="2025">2025</option>
-                                    <option value="2026" selected>2026</option>
-                                    <option value="2027">2027</option>
-                                    <option value="2028">2028</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1">Week Scope Selection</label>
-                            <select id="weekScope" class="w-full p-2 border border-slate-300 rounded text-xs">
-                                <option value="all">All Weeks (Full Month)</option>
-                                <option value="1">Week 1</option>
-                                <option value="2">Week 2</option>
-                                <option value="3">Week 3</option>
-                                <option value="4">Week 4</option>
-                                <option value="5">Week 5</option>
-                                <option value="1-2" selected>Week 1–2</option>
-                                <option value="2-3">Week 2–3</option>
-                                <option value="3-4">Week 3–4</option>
-                                <option value="4-5">Week 4–5</option>
-                                <option value="1-3">Week 1–3</option>
-                                <option value="2-4">Week 2–4</option>
-                                <option value="3-5">Week 3–5</option>
-                                <option value="1-4">Week 1–4</option>
-                                <option value="2-5">Week 2–5</option>
-                                <option value="1-5">Week 1–5</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1">Prepared By (Your Name)</label>
-                            <input type="text" id="preparerName" value="John" class="w-full p-2 border border-slate-300 rounded text-xs" placeholder="e.g. John Doe">
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-medium text-slate-600 mb-1">Supervisor / Recipient</label>
-                            <input type="text" id="recipientName" value="Sir Jun" class="w-full p-2 border border-slate-300 rounded text-xs" placeholder="e.g. Sir Jun">
-                        </div>
-                    </div>
+                <div id="fileInfo" class="hidden">
+                    <p id="loadedFileName" style="margin:0 0 8px;font-weight:600;color:var(--ok)">File loaded successfully!</p>
+                    <label class="fld">Active Sheet Selection
+                        <select id="sheetSelect"></select>
+                    </label>
                 </div>
+            </section>
 
-                <!-- EXCEL MAPPING / CORRESPONDENCE AUDIT -->
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-                    <h3 class="font-semibold text-slate-800 text-xs uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                        <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-                        Spreadsheet Mapping Log
-                    </h3>
-                    <p class="text-[11px] text-slate-500 mb-3">Below details the automatically detected matches for CEPALCO keywords.</p>
-                    <div id="mappingStatus" class="space-y-2 text-[11px] max-h-48 overflow-y-auto">
-                        <div class="text-slate-400 italic">No file uploaded yet.</div>
-                    </div>
+            <section class="card pad">
+                <h2 class="stp"><span class="step">2</span>Report &amp; Period Parameters</h2>
+                <div class="grid2" style="gap:14px 16px">
+                    <label class="fld">Report Month
+                        <select id="reportMonth">
+                            <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+                            <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+                            <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+                            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                        </select>
+                    </label>
+                    <label class="fld">Report Year
+                        <select id="reportYear">
+                            <option value="2025">2025</option><option value="2026" selected>2026</option>
+                            <option value="2027">2027</option><option value="2028">2028</option>
+                        </select>
+                    </label>
+                    <label class="fld span-all">Week Scope Selection
+                        <select id="weekScope">
+                            <option value="all">All Weeks (Full Month)</option>
+                            <option value="1">Week 1</option><option value="2">Week 2</option><option value="3">Week 3</option>
+                            <option value="4">Week 4</option><option value="5">Week 5</option>
+                            <option value="1-2" selected>Week 1–2</option><option value="2-3">Week 2–3</option>
+                            <option value="3-4">Week 3–4</option><option value="4-5">Week 4–5</option>
+                            <option value="1-3">Week 1–3</option><option value="2-4">Week 2–4</option>
+                            <option value="3-5">Week 3–5</option><option value="1-4">Week 1–4</option>
+                            <option value="2-5">Week 2–5</option><option value="1-5">Week 1–5</option>
+                        </select>
+                    </label>
+                    <label class="fld">Prepared By (Your Name)
+                        <input type="text" id="preparerName" value="John" placeholder="e.g. John Doe">
+                    </label>
+                    <label class="fld">Supervisor / Recipient
+                        <input type="text" id="recipientName" value="Sir Jun" placeholder="e.g. Sir Jun">
+                    </label>
                 </div>
-
-            </div>
-
-            <!-- Right side: Realtime interactive report editing -->
-            <div class="lg:col-span-7 flex flex-col space-y-4">
-                
-                <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <div class="flex items-center gap-2">
-                        <button id="btnGenerate" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors shadow">
-                            Generate Report
-                        </button>
-                    </div>
-
-                    <div class="flex flex-wrap items-center gap-2">
-                        <button id="btnPrint" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                            Print Layout
-                        </button>
-                        <button id="btnPDF" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                            Save as PDF
-                        </button>
-                        <button id="btnCopyText" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
-                            Copy Plain Text
-                        </button>
-                        <button id="btnExportWord" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                            Export .DOCX
-                        </button>
-                    </div>
-                </div>
-
-                <div class="bg-amber-50 border-l-4 border-amber-500 p-3 text-xs text-amber-900 rounded-r shadow-xs">
-                    <span class="font-bold">📝 Document Editor:</span> Click inside the layout container below to customize remarks, lists, or headers. Your edits are saved in print/export outputs. Fonts are locked to **Aptos / Calibri at 12-point**.
-                </div>
-
-                <!-- Raw JSON / Data summary debug tool (collapsible) -->
-                <details open class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 text-xs">
-                    <summary class="font-bold cursor-pointer text-slate-700 flex justify-between items-center">
-                        <span class="text-sm">Account status tags</span>
-                        <span class="text-[10px] text-slate-400 font-normal">Fully paid, partially paid, overpaid, no payment, no billing</span>
-                    </summary>
-                    <div id="dataSummaryStats" class="mt-3 text-[11px] text-slate-600">
-                        No Excel sheet loaded yet. Use Step 1 to trigger auto analysis.
-                    </div>
-                </details>
-            </div>
+            </section>
         </div>
 
+        <!-- Row 2: Mapping log | Status tags (equal columns) -->
+        <div class="grid2 no-print">
+            <section class="card pad">
+                <h2>Spreadsheet Mapping Log</h2>
+                <p class="sub" style="margin:0 0 10px">Below details the automatically detected matches for CEPALCO keywords.</p>
+                <div id="mappingStatus" style="display:flex;flex-direction:column;gap:6px;font-size:11.5px;max-height:220px;overflow-y:auto">
+                    <div class="sub" style="font-style:italic">No file uploaded yet.</div>
+                </div>
+            </section>
+            <details open class="card sumbox">
+                <summary><span>Account status tags</span><small>Fully paid, partially paid, overpaid, no payment, no billing</small></summary>
+                <div id="dataSummaryStats" style="margin-top:12px;font-size:11.5px;color:var(--ink-2);max-height:220px;overflow-y:auto">
+                    No Excel sheet loaded yet. Use Step 1 to trigger auto analysis.
+                </div>
+            </details>
+        </div>
+
+        <!-- Action bar -->
+        <div class="card act-bar no-print">
+            <button id="btnGenerate" class="btn pri lg">Generate Report</button>
+            <span class="sep" style="width:1px;height:28px;background:var(--line)"></span>
+            <button id="btnPrint" class="btn blk"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>Print Layout</button>
+            <button id="btnPDF" class="btn blk"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>Save as PDF</button>
+            <button id="btnCopyText" class="btn"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3" /></svg>Copy Plain Text</button>
+            <button id="btnExportWord" class="btn"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>Export .DOCX</button>
+        </div>
+
+        <div class="note no-print"><b>Document Editor:</b> click inside the layout below to customize remarks, lists, or headers. Your edits are saved in print/export outputs. Fonts are locked to Aptos / Calibri at 12-point.</div>
+
         <!-- THE ACTUAL PRINTABLE / EXPORTABLE REPORT COMPONENT -->
-        <div id="reportCanvasContainer" class="mt-6 bg-white p-8 rounded-xl shadow-md border border-slate-200 print-container mx-auto max-w-[21cm]">
+        <div id="reportCanvasContainer" class="print-container">
             <div id="reportContent" class="report-editable-area outline-none" contenteditable="true">
                 <p>Hi Sir Jun,</p>
                 <p>Good day.</p>
@@ -535,15 +405,11 @@
     </main>
 
     <!-- Custom alert container wrapper -->
-    <div id="customAlert" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50 hidden no-print">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 mx-4">
-            <h4 class="font-bold text-lg text-slate-900 mb-2" id="alertTitle">System Alert</h4>
-            <p class="text-sm text-slate-600 mb-4" id="alertMessage"></p>
-            <div class="text-right">
-                <button id="alertBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded">
-                    Okay
-                </button>
-            </div>
+    <div id="customAlert" class="hidden no-print">
+        <div>
+            <h4 style="margin:0 0 8px;font-size:17px;font-weight:700" id="alertTitle">System Alert</h4>
+            <p style="margin:0 0 18px;font-size:13.5px;color:var(--ink-2)" id="alertMessage"></p>
+            <div style="text-align:right"><button id="alertBtn">Okay</button></div>
         </div>
     </div>
 
@@ -1480,7 +1346,7 @@
                     labels: ['Fully Paid', 'Partial Payment', 'No Bill', '1-Month Balance', '2+ Months Balance'],
                     datasets: [{
                         data: [fp, pp, nb, u1, u2],
-                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#64748b', '#ef4444'],
+                        backgroundColor: ['#10b981', '#141414', '#f59e0b', '#9a9a9a', '#E8171A'],
                         borderWidth: 1
                     }]
                 },

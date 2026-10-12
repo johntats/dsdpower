@@ -15,13 +15,13 @@ function hydrate(){const s=ses();
 document.querySelectorAll('[data-feature]').forEach(e=>e.hidden=!can(e.dataset.feature));
 document.querySelectorAll('[data-admin]').forEach(e=>{if(e!==cs)e.hidden=s.role!=='admin'});
 const slot=document.getElementById('authSlot');
-if(slot){slot.textContent='';const t=document.createElement('span');t.textContent='\u{1F464} '+s.u+' ('+s.role+') ';const a=document.createElement('a');a.href='#';a.className='underline ml-1';a.textContent='Logout';a.onclick=e=>{e.preventDefault();logout()};slot.append(t,a)}}
+if(slot){slot.textContent='';const t=document.createElement('span');t.textContent=s.u+' ('+s.role+')';const a=document.createElement('a');a.href='#';a.className='';a.textContent='Logout';a.onclick=e=>{e.preventDefault();logout()};slot.append(t,a)}}
 async function guard(){const toLogin=()=>{sessionStorage.removeItem(S);location.replace('login.html?next='+encodeURIComponent(location.pathname.split('/').pop()+location.hash));return false};
 if(!ses())return toLogin();
 const r=await call('me');if(!r.t)return toLogin();put(r);
 const ok=g.admin!==undefined?r.role==='admin':(g.guard||'').split(',').some(f=>can(f));
 hydrate();document.documentElement.style.visibility='visible';
-if(!ok){const m=document.querySelector('main');if(m){m.hidden=true;m.insertAdjacentHTML('beforebegin','<div class="max-w-xl mx-auto mt-16 bg-white p-10 rounded-xl border border-slate-200 text-center"><h2 class="font-bold text-lg mb-2">Access restricted</h2><p class="text-sm text-slate-500">Your account does not have permission to view this page.</p></div>')}}
+if(!ok){const m=document.querySelector('main');if(m){m.hidden=true;m.insertAdjacentHTML('beforebegin','<div class="wrap" style="max-width:560px;margin-top:64px"><div class="card empty"><h2 class="nobar" style="justify-content:center">Access restricted</h2><p class="sub">Your account does not have permission to view this page.</p></div></div>')}}
 return ok}
 /* Saved accounts -> plain rows keyed by Excel header, dates as Excel serial numbers (what the report page expects from an uploaded workbook). */
 const excelRows=(d,dateFmt)=>d.r.map(x=>{const o={};d.cols.forEach(([k,t])=>{let v=x[k];if(t==='d'&&v&&!dateFmt){const[y,m,dd]=v.split('-').map(Number);v=Date.UTC(y,m-1,dd)/864e5+25569}o[k]=v==null?'':v});return o});
