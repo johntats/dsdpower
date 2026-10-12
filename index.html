@@ -107,14 +107,15 @@ const dt=v=>{if(v==null||v==='')return null;let d=v instanceof Date?v:typeof v==
 const mk=d=>d?d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'):'';
 const ml=k=>{if(k==='nodate')return'No date';const[y,m]=k.split('-');return new Date(+y,+m-1,1).toLocaleDateString('en',{month:'short',year:'numeric'})};
 const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
-let rows=[],ch={};
+let rows=[],ch={},rsCol='';
 function build(r){r.due=dt(r.due);r.pd=dt(r.pd);r.pm=r.paid>0?(r.pd?mk(r.pd):'nodate'):'';
 r.st=r.total<=0&&r.paid<=0?'No billing':r.rem<-.005?'Overpaid':r.rem<=0?'Fully paid':r.paid>0?'Partially paid':'No payment';r.tm=r.pd&&r.due&&r.paid>0?(r.pd>r.due?'Late':mk(r.pd)<mk(r.due)?'Early':'On time'):'';return r}
 function parse(wb){const ws=wb.Sheets['MONITORING FOR CODE']||wb.Sheets[wb.SheetNames[0]];
+const hd=(XLSX.utils.sheet_to_json(ws,{header:1})[0]||[]).map(h=>String(h??'').trim().toUpperCase()),rsk=hd.find(h=>/RATE/.test(h)&&!/COLLECTION|ARREAR/.test(h))||hd[8]||'';rsCol=rsk;
 return XLSX.utils.sheet_to_json(ws,{defval:null}).map(r=>{const o={};for(const k in r)o[k.trim().toUpperCase()]=r[k];
 const has=k=>o[k]!=null&&o[k]!=='';
 const total=has('TOTAL BALANCE AMOUNT')?num(o['TOTAL BALANCE AMOUNT']):(has('ARREARS')||has('LATEST BILL AMOUNT'))?num(o['ARREARS'])+num(o['LATEST BILL AMOUNT']):num(o['AMOUNT']);
-const paid=num(o['PAID AMOUNT']),rk=Object.keys(o).find(k=>/RATE\s*SCHED|^RATE$|^RS$/.test(k));const ar=num(o['ARREARS']),lb=(has('LATEST BILL AMOUNT')||has('ARREARS'))?num(o['LATEST BILL AMOUNT']):total;
+const paid=num(o['PAID AMOUNT']),rk=rsk;const ar=num(o['ARREARS']),lb=(has('LATEST BILL AMOUNT')||has('ARREARS'))?num(o['LATEST BILL AMOUNT']):total;
 return build({type:o['CUSTOMER TYPE']||'OTHER',name:o['CUSTOMER NAME'],cn:o['CONTRACT NO.'],area:o['AREA'],rs:rk?String(o[rk]??'').trim():'',mu:num(o['MONTHS UNPAID']),due:o['DUE DATE'],pd:o['PAYMENT DATE'],ar,lb,total,paid,rem:has('REMAINING BALANCE')?num(o['REMAINING BALANCE']):total-paid})})
 .filter(x=>x.name&&(x.total>0||x.paid>0))}
 function setRows(r,msg){rows=r;$('#st').textContent=msg;
@@ -133,7 +134,7 @@ const FG=[['area','Area',r=>r.area],['type','Customer type',r=>r.type],['rs','Ra
 const F=()=>rows.filter(r=>FG.every(([k,,g])=>!sel[k].size||sel[k].has(fv(g(r)))));
 function drawF(){FG.forEach(([k])=>sel[k].clear());
 $('#fl').innerHTML='<span class="text-sm font-semibold text-slate-700">Filter</span>'+FG.map(([k,l,g])=>{const vs=[...new Set(rows.map(r=>fv(g(r))))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
-const body=k==='rs'&&vs.length===1&&vs[0]===''?'<i class="text-slate-500">No rate schedule data. Admin: reload the Excel file (needs a RATE SCHEDULE column).</i>':vs.map(v=>`<label><input type="checkbox" data-k="${k}" value="${esc(v)}"> ${v?esc(v):'(blank)'}</label>`).join('');
+const body=k==='rs'&&vs.length===1&&vs[0]===''?'<i class="text-slate-500">'+(rsCol?'Column "'+esc(rsCol)+'" has no values.':'No rate schedule saved yet. Admin: reload the Excel file.')+'</i>':vs.map(v=>`<label><input type="checkbox" data-k="${k}" value="${esc(v)}"> ${v?esc(v):'(blank)'}</label>`).join('');
 return `<details class="fd" id="fd-${k}"><summary id="fs-${k}">${l}</summary><div class="fp">${body}</div></details>`}).join('')+'<button type="button" id="fx">Clear filters</button><span id="fc" class="text-xs text-slate-500"></span>'}
 function sumF(){FG.forEach(([k,l])=>{$('#fs-'+k).textContent=l+(sel[k].size?' ('+sel[k].size+')':'');$('#fd-'+k).classList.toggle('on',sel[k].size>0)});$('#fc').textContent='Showing '+F().length+' of '+rows.length+' accounts'}
 $('#fl').onchange=e=>{const t=e.target,k=t.dataset.k;if(!k)return;t.checked?sel[k].add(t.value):sel[k].delete(t.value);sumF();view()};
