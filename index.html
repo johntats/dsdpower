@@ -104,9 +104,9 @@
     <section id="acc" hidden>
         <div id="accView">
         <div class="flex flex-wrap items-center gap-3 mb-4">
-            <input id="q" placeholder="Search name or contract"><select id="ty"></select><select id="sb"><option value="">All accounts</option><option value="u">Uncollected</option><option value="c">Collected</option></select><span id="cnt" class="text-sm text-slate-500"></span>
+            <input id="q" placeholder="Search name or contract"><span id="sflt" class="flex flex-wrap items-center gap-3"></span><select id="sb"><option value="">All accounts</option><option value="u">Uncollected</option><option value="c">Collected</option></select><span id="cnt" class="text-sm text-slate-500"></span>
         </div>
-        <div class="tw"><table><thead><tr><th>Customer</th><th>Type</th><th>Contract</th><th>Due</th><th class="n">Months unpaid</th><th class="n">Total balance</th><th class="n">Paid</th><th>Month paid</th><th>Status</th><th>Timing</th><th class="n">Remaining</th></tr></thead><tbody id="tb"></tbody></table></div>
+        <div class="tw"><table><thead id="sth"></thead><tbody id="tb"></tbody></table></div>
         </div>
         <div id="accEdit" hidden>
             <div id="aflt" class="flex flex-wrap items-center gap-3 mb-2"></div>
@@ -171,15 +171,14 @@ function parseImport(wb){const ws=wb.Sheets['MONITORING FOR CODE']||wb.Sheets[wb
 cols.forEach(([k])=>idx[k.toUpperCase()]=k);
 const out=raw.map(r=>{const o={};for(const h in r){const k=idx[String(h).trim().toUpperCase()];if(k)o[k]=cell(k,r[h])}return o}).filter(o=>o['CUSTOMER NAME']||o['CONTRACT NO.']);
 if(!out.length)throw new Error('no accounts found (needs a CUSTOMER NAME column)');return out}
-function fillSel(){const keep=[$('#mo').value,$('#ty').value];
+function fillSel(){const keep=[$('#mo').value];
 const ms=[...new Set(rows.map(x=>x.pm).filter(Boolean))].sort().reverse();
 $('#mo').innerHTML='<option value="all">All months</option>'+ms.map(k=>`<option value="${k}">${ml(k)}</option>`).join('');
-$('#ty').innerHTML='<option value="">All types</option>'+[...new Set(rows.map(x=>x.type))].sort().map(t=>`<option>${esc(t)}</option>`).join('');
-if([...$('#mo').options].some(o=>o.value===keep[0]))$('#mo').value=keep[0];if([...$('#ty').options].some(o=>o.value===keep[1]))$('#ty').value=keep[1]}
+if([...$('#mo').options].some(o=>o.value===keep[0]))$('#mo').value=keep[0]}
 function setRows(r,msg){recs=r;rows=viewRows();$('#st').textContent=msg;fillSel();
-$('#em').hidden=rows.length>0;drawF();sumF();view();table();AE.render()}
+$('#em').hidden=rows.length>0;drawF();drawS();sumF();view();table();AE.render()}
 /* after an edit in the grid: refresh the dashboard numbers (full=true also rebuilds the filter lists) */
-function rebuild(full){rows=viewRows();fillSel();$('#em').hidden=rows.length>0;if(full)drawF();sumF();view();table()}
+function rebuild(full){rows=viewRows();fillSel();$('#em').hidden=rows.length>0;if(full){drawF();drawS()}sumF();view();table()}
 $('#f').onchange=e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
 if(!cols.length){$('#st').textContent='Not ready yet, try again in a moment';return}
 if(recs.length&&!confirm('Replace all '+recs.length+' accounts in the system with the contents of "'+f.name+'"?\n\nAny edits made inside the system will be overwritten. Use Export to Excel first if you want a backup.'))return;
@@ -212,11 +211,31 @@ draw('c1',{type:'bar',data:{labels:ks.map(ml),datasets:[{data:ks.map(k=>by[k]),b
 draw('c2',{type:'doughnut',data:{labels:['Collected','Uncollected'],datasets:[{data:[all,unc],backgroundColor:['#1e3a8a','#facc15']}]},options:{maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom'},tooltip:{callbacks:{label:c=>php(c.parsed)}}}}});
 const ts=[...new Set(rows.map(r=>r.type))].sort(),inM=r=>sel==='all'||r.pm===sel;
 draw('c3',{type:'bar',data:{labels:ts,datasets:[{label:'Collected',data:ts.map(t=>sum(rows.filter(r=>r.type===t&&inM(r)),r=>r.paid)),backgroundColor:'#1e3a8a'},{label:'Uncollected',data:ts.map(t=>sum(rows.filter(r=>r.type===t),r=>Math.max(r.rem,0))),backgroundColor:'#facc15'}]},options:{...opt,plugins:{...opt.plugins,legend:{display:true}}}});table()}
-function table(){const sel=$('#mo').value,q=$('#q').value.toLowerCase(),t=$('#ty').value,s=$('#sb').value;
-const l=rows.filter(r=>(sel==='all'||r.pm===sel)&&(!t||r.type===t)&&(!s||(s==='u'?r.rem>0:r.paid>0))&&(!q||(r.name+' '+r.cn).toLowerCase().includes(q))).sort((a,b)=>b.rem-a.rem);
+/* Accounts summary table (everyone who can view Accounts): filters by Area / Rate schedule / Customer type, Excel-style heading sort */
+const SC=[['Customer','name','t'],['Type','type','t'],['Area','area','n'],['Rate sched','rs','n'],['Contract','cn','n'],['Due','due','d'],['Months unpaid','mu','n',1],['Total balance','total','n',1],['Paid','paid','n',1],['Month paid','pm','d'],['Status','st','t'],['Timing','tm','t'],['Remaining','rem','n',1]];
+const SF=[['area','Area',r=>fv(r.area)],['rs','Rate schedule',r=>fv(r.rs)],['type','Customer type',r=>fv(r.type)]],ssel={area:new Set(),rs:new Set(),type:new Set()};let ss={k:null,dir:1},ssig='';
+const sval=(r,k,kd)=>{let v=r[k];if(kd==='d'){v=k==='due'?(r.due?+r.due:null):(r.pm&&r.pm!=='nodate'?r.pm:null);return v}
+if(v==null||v==='')return null;if(kd==='n'){const n=typeof v==='number'?v:Number(String(v).trim());return isFinite(n)?n:null}return String(v)};
+/* number columns sort highest first, text columns A to Z, like Excel; a column of numbers that also holds words is treated as text */
+const skind=([,k,kd])=>kd==='n'&&rows.some(r=>r[k]!=null&&r[k]!==''&&sval(r,k,'n')===null)?'t':kd;
+function drawS(){const o=SF.map(([,,g])=>[...new Set(rows.map(g))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}))),sg=JSON.stringify(o);if(sg===ssig)return;ssig=sg;
+SF.forEach(([k],i)=>[...ssel[k]].forEach(v=>{if(!o[i].includes(v))ssel[k].delete(v)}));
+$('#sflt').innerHTML=SF.map(([k,l],i)=>`<details class="fd${ssel[k].size?' on':''}" data-k="${k}"><summary>${l}${ssel[k].size?' ('+ssel[k].size+')':''}</summary><div class="fp">${o[i].map(v=>`<label><input type="checkbox" value="${esc(v)}" ${ssel[k].has(v)?'checked':''}> ${v?esc(v):'(blank)'}</label>`).join('')}</div></details>`).join('')+'<button type="button" id="sx">Clear filters</button>'}
+function table(){const sel=$('#mo').value,q=$('#q').value.toLowerCase(),s=$('#sb').value;
+let l=rows.filter(r=>(sel==='all'||r.pm===sel)&&SF.every(([k,,g])=>!ssel[k].size||ssel[k].has(g(r)))&&(!s||(s==='u'?r.rem>0:r.paid>0))&&(!q||(r.name+' '+r.cn).toLowerCase().includes(q)));
+const sc=SC.find(c=>c[1]===ss.k);
+if(sc){const kd=skind(sc);l=l.map(r=>[r,sval(r,sc[1],kd)]).sort((x,y)=>{const A=x[1],B=y[1];if(A==null&&B==null)return 0;if(A==null)return 1;if(B==null)return -1;return(typeof A==='number'&&typeof B==='number'?A-B:String(A).localeCompare(String(B),undefined,{numeric:true,sensitivity:'base'}))*ss.dir}).map(x=>x[0])}
+else l.sort((a,b)=>b.rem-a.rem);
+$('#sth').innerHTML='<tr>'+SC.map(c=>{const kd=skind(c),on=ss.k===c[1],ar=!on?'':kd==='d'?(ss.dir<0?' \u25BC newest':' \u25B2 oldest'):kd==='n'?(ss.dir<0?' \u25BC 9\u21921':' \u25B2 1\u21929'):(ss.dir>0?' \u25B2 A\u2192Z':' \u25BC Z\u2192A');return`<th data-sort="${c[1]}" class="${c[3]?'n':''}" style="cursor:pointer;user-select:none" title="Click to sort">${c[0]}${ar}</th>`}).join('')+'</tr>';
 $('#cnt').textContent=l.length+' accounts';
-$('#tb').innerHTML=l.slice(0,400).map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.type)}</td><td>${esc(r.cn)}</td><td>${r.due?r.due.toLocaleDateString('en-PH'):''}</td><td class="n">${r.mu||''}</td><td class="n">${php(r.total)}</td><td class="n">${php(r.paid)}</td><td>${r.pm?ml(r.pm):''}</td><td><span class="tag ${({'Fully paid':'Fu','Partially paid':'Pa','Overpaid':'Ov','No payment':'No','No billing':'Nob'})[r.st]}">${r.st}</span></td><td class="${r.tm.toLowerCase()}">${r.tm}</td><td class="n">${php(r.rem)}</td></tr>`).join('')}
-['#mo','#ty','#sb'].forEach(i=>$(i).onchange=()=>{view()});$('#q').oninput=table;
+$('#tb').innerHTML=l.slice(0,1000).map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.type)}</td><td>${esc(r.area)}</td><td>${esc(r.rs)}</td><td>${esc(r.cn)}</td><td>${r.due?r.due.toLocaleDateString('en-PH'):''}</td><td class="n">${r.mu||''}</td><td class="n">${php(r.total)}</td><td class="n">${php(r.paid)}</td><td>${r.pm?ml(r.pm):''}</td><td><span class="tag ${({'Fully paid':'Fu','Partially paid':'Pa','Overpaid':'Ov','No payment':'No','No billing':'Nob'})[r.st]}">${r.st}</span></td><td class="${r.tm.toLowerCase()}">${r.tm}</td><td class="n">${php(r.rem)}</td></tr>`).join('')}
+$('#sth').onclick=e=>{const th=e.target.closest('th[data-sort]');if(!th)return;const k=th.dataset.sort,kd=skind(SC.find(c=>c[1]===k)),first=kd==='t'?1:-1;
+if(ss.k!==k){ss.k=k;ss.dir=first}else if(ss.dir===first)ss.dir=-first;else ss.k=null;table()};
+$('#sflt').onchange=e=>{const t=e.target,d=t.closest('details');if(!d)return;const k=d.dataset.k;t.checked?ssel[k].add(t.value):ssel[k].delete(t.value);
+const l=SF.find(f=>f[0]===k)[1];d.querySelector('summary').textContent=l+(ssel[k].size?' ('+ssel[k].size+')':'');d.classList.toggle('on',ssel[k].size>0);table()};
+$('#sflt').onclick=e=>{if(e.target.id!=='sx')return;SF.forEach(([k,l])=>{ssel[k].clear();const d=$('#sflt details[data-k="'+k+'"]');d.querySelector('summary').textContent=l;d.classList.remove('on')});$('#sflt').querySelectorAll('input').forEach(i=>i.checked=false);table()};
+document.addEventListener('click',e=>document.querySelectorAll('#sflt details[open]').forEach(d=>{if(!d.contains(e.target))d.open=false}));
+['#mo','#sb'].forEach(i=>$(i).onchange=()=>{view()});$('#q').oninput=table;
 const tabs=document.querySelectorAll('nav button'),TABS=['col','acc','con'];
 function showTab(t){tabs.forEach(x=>x.classList.toggle('on',x.dataset.t===t));TABS.forEach(i=>$('#'+i).hidden=i!==t);if(t==='con')CT.open()}
 tabs.forEach(b=>b.onclick=()=>showTab(b.dataset.t));
