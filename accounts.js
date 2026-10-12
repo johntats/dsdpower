@@ -36,7 +36,7 @@ function editCell(td, o) {
 
 const AE = (() => {
   const $a = s => document.querySelector(s), MONEY = new Set(['ARREARS', 'LATEST BILL AMOUNT', 'TOTAL BALANCE AMOUNT', 'PAID AMOUNT', 'REMAINING BALANCE']);
-  const st = { page: 0, size: 100, sk: null, dir: 1 }, can = a => Auth.can('accounts', a), isEd = () => ['create', 'update', 'delete'].some(can);
+  const st = { page: 0, size: 100, sk: null, dir: 1 }, FK = [['AREA', 'Area'], ['RATE SCHED', 'Rate schedule'], ['CUSTOMER TYPE', 'Customer type']], sel = { 'AREA': new Set(), 'RATE SCHED': new Set(), 'CUSTOMER TYPE': new Set() }, vs = v => String(v ?? '').trim(), can = a => Auth.can('accounts', a), isEd = () => ['create', 'update', 'delete'].some(can);
   const typeOf = k => (cols.find(c => c[0] === k) || [])[1];
   // calculated like the Excel formulas: REMAINING always, TOTAL when ARREARS is filled
   const locked = (r, k) => k === 'REMAINING BALANCE' || (k === 'TOTAL BALANCE AMOUNT' && r['ARREARS'] != null);
@@ -47,17 +47,17 @@ const AE = (() => {
     return String(v);
   };
   const msg = (t, bad) => flash($a('#amsg'), t, bad);
-  let sync;
+  let sync, sig = '';
   const later = () => { clearTimeout(sync); sync = setTimeout(() => rebuild(false), 400); };
 
   function list() {
-    const q = $a('#aq').value.trim().toLowerCase(), ty = $a('#aty').value, bl = $a('#abl').value;
-    let l = recs.filter(r => (!ty || r['CUSTOMER TYPE'] === ty) && (!bl || r['BILLING'] === bl) && (!q || [r['CUSTOMER NAME'], r['CONTRACT NO.'], r['CLN']].join(' ').toLowerCase().includes(q)));
+    const q = $a('#aq').value.trim().toLowerCase(), bl = $a('#abl').value;
+    let l = recs.filter(r => FK.every(([k]) => !sel[k].size || sel[k].has(vs(r[k]))) && (!bl || r['BILLING'] === bl) && (!q || [r['CUSTOMER NAME'], r['CONTRACT NO.'], r['CLN']].join(' ').toLowerCase().includes(q)));
     if (st.sk) {
       const k = st.sk;
       l = [...l].sort((a, b) => {
         const A = a[k], B = b[k]; if (A == null && B == null) return 0; if (A == null) return 1; if (B == null) return -1;
-        return (typeof A === 'number' && typeof B === 'number' ? A - B : String(A).localeCompare(String(B), undefined, { numeric: true })) * st.dir;
+        return (typeof A === 'number' && typeof B === 'number' ? A - B : String(A).localeCompare(String(B), undefined, { numeric: true, sensitivity: 'base' })) * st.dir;
       });
     }
     return l;
@@ -67,21 +67,27 @@ const AE = (() => {
     return `<tr data-id="${esc(r._id)}">` + (can('delete') ? '<td><button class="xb" data-del="1" title="Delete this account">\u2715</button></td>' : '') +
       cols.map(([k], i) => `<td data-i="${i}" class="${MONEY.has(k) ? 'n ' : ''}${locked(r, k) ? 'cal' : u ? 'ed' : ''}"${locked(r, k) ? ' title="Calculated automatically"' : ''}>${esc(fmt(r, k))}</td>`).join('') + '</tr>';
   }
+  // Excel-style: columns of numbers (and dates) sort highest / newest first, text sorts A to Z
+  const isNum = k => { const t = typeOf(k); return t === 'd' || (t !== 's' && recs.every(r => r[k] == null || typeof r[k] === 'number')); };
+  const arrow = k => { if (st.sk !== k) return ''; const t = typeOf(k); return t === 'd' ? (st.dir < 0 ? ' \u25BC newest' : ' \u25B2 oldest') : isNum(k) ? (st.dir < 0 ? ' \u25BC 9\u21921' : ' \u25B2 1\u21929') : (st.dir > 0 ? ' \u25B2 A\u2192Z' : ' \u25BC Z\u2192A'); };
   function fillFilters() {
-    const f = (id, key, all) => {
-      const el = $a(id), cur = el.value, vs = [...new Set(recs.map(r => r[key]).filter(Boolean))].sort();
-      el.innerHTML = `<option value="">${all}</option>` + vs.map(v => `<option>${esc(v)}</option>`).join('');
-      if (vs.includes(cur)) el.value = cur;
-    };
-    f('#aty', 'CUSTOMER TYPE', 'All customer types'); f('#abl', 'BILLING', 'All billing');
+    const bl = $a('#abl'), cur = bl.value, bs = [...new Set(recs.map(r => r['BILLING']).filter(Boolean))].sort();
+    bl.innerHTML = '<option value="">All billing</option>' + bs.map(v => `<option>${esc(v)}</option>`).join(''); if (bs.includes(cur)) bl.value = cur;
+    const opts = FK.map(([k]) => [...new Set(recs.map(r => vs(r[k])))].sort((x, y) => x.localeCompare(y, undefined, { numeric: true }))), s = JSON.stringify(opts);
+    if (s === sig) return; sig = s;                      // rebuild the dropdowns only when the available values change, so they stay open while ticking
+    FK.forEach(([k]) => [...sel[k]].forEach(v => { if (!opts[FK.findIndex(f => f[0] === k)].includes(v)) sel[k].delete(v); }));
+    $a('#aflt').innerHTML = '<span class="text-sm font-semibold text-slate-700">Filter</span>' + FK.map(([k, l], i) =>
+      `<details class="fd" data-k="${esc(k)}"><summary>${l}${sel[k].size ? ' (' + sel[k].size + ')' : ''}</summary><div class="fp">${opts[i].map(v => `<label><input type="checkbox" value="${esc(v)}" ${sel[k].has(v) ? 'checked' : ''}> ${v ? esc(v) : '(blank)'}</label>`).join('')}</div></details>`).join('') +
+      '<button type="button" class="btn" id="aclr">Clear filters</button>';
   }
+  function syncFilterLabels() { FK.forEach(([k, l]) => { const d = $a('#aflt details[data-k="' + k + '"]'); if (d) { d.querySelector('summary').textContent = l + (sel[k].size ? ' (' + sel[k].size + ')' : ''); d.classList.toggle('on', sel[k].size > 0); } }); }
   function render() {
     if (!isEd() || !cols.length) return;
     fillFilters();
     const l = list(), last = Math.max(0, Math.ceil(l.length / st.size) - 1); if (st.page > last) st.page = last;
     $a('#acnt').textContent = l.length + ' of ' + recs.length + ' accounts';
     $a('#agrid').innerHTML = '<thead><tr>' + (can('delete') ? '<th></th>' : '') +
-      cols.map(([k]) => `<th data-sort="${esc(k)}">${esc(k)}${st.sk === k ? (st.dir > 0 ? ' \u25B2' : ' \u25BC') : ''}</th>`).join('') + '</tr></thead><tbody>' +
+      cols.map(([k]) => `<th data-sort="${esc(k)}" title="Click to sort">${esc(k)}${arrow(k)}</th>`).join('') + '</tr></thead><tbody>' +
       l.slice(st.page * st.size, (st.page + 1) * st.size).map(rowHtml).join('') + '</tbody>';
     pager($a('#apg'), l.length, st.page, st.size, p => { st.page = p; render(); $a('#agrid').parentNode.scrollTop = 0; });
   }
@@ -119,7 +125,7 @@ const AE = (() => {
     e.preventDefault(); const rec = {}; $a('#afl').querySelectorAll('input').forEach(i => { if (!i.disabled && i.value.trim()) rec[i.dataset.k] = i.value.trim(); });
     if (!rec['CUSTOMER NAME']) { $a('#aer').textContent = 'Customer name is required.'; return; }
     const j = await Auth.call('acc_add', { rec }); if (!j.ok) { $a('#aer').textContent = j.e || 'Not saved'; return; }
-    recs.push(j.rec); $a('#am').hidden = true; $a('#aq').value = ''; $a('#aty').value = ''; $a('#abl').value = ''; st.sk = null;
+    recs.push(j.rec); $a('#am').hidden = true; $a('#aq').value = ''; $a('#abl').value = ''; FK.forEach(([k]) => sel[k].clear()); sig = ''; st.sk = null;
     st.page = Math.ceil(recs.length / st.size) - 1; render(); rebuild(true); msg('Account added');
     const tr = $a('#agrid tr[data-id="' + j.rec._id + '"]'); if (tr) tr.scrollIntoView({ block: 'center' });
   }
@@ -132,11 +138,14 @@ const AE = (() => {
   function init() {
     const ed = isEd(); $a('#accEdit').hidden = !ed; $a('#accView').hidden = ed; if (!ed) return;
     $a('#aadd').hidden = !can('create');
-    $a('#ahint').textContent = can('update') ? 'Click a cell to edit it. Enter or Tab saves, Esc cancels. Grey cells are calculated.' : 'You can view this grid but not edit it.';
-    ['#aq', '#aty', '#abl'].forEach(i => $a(i)[i === '#aq' ? 'oninput' : 'onchange'] = () => { st.page = 0; render(); });
+    $a('#ahint').textContent = can('update') ? 'Click a cell to edit it (Enter or Tab saves, Esc cancels, grey cells are calculated). Click a column heading to sort: A\u2192Z for text, highest first for numbers; click again to reverse, a third time to clear.' : 'You can view this grid but not edit it.';
+    $a('#aq').oninput = $a('#abl').onchange = () => { st.page = 0; render(); };
+    $a('#aflt').onchange = e => { const t = e.target, k = t.closest('details') && t.closest('details').dataset.k; if (!k) return; t.checked ? sel[k].add(t.value) : sel[k].delete(t.value); st.page = 0; syncFilterLabels(); render(); };
+    $a('#aflt').onclick = e => { if (e.target.id !== 'aclr') return; FK.forEach(([k]) => sel[k].clear()); $a('#aflt').querySelectorAll('input').forEach(i => i.checked = false); syncFilterLabels(); st.page = 0; render(); };
+    document.addEventListener('click', e => document.querySelectorAll('#aflt details[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; }));
     $a('#agrid').onclick = e => {
       const th = e.target.closest('th[data-sort]');
-      if (th) { const k = th.dataset.sort; if (st.sk !== k) { st.sk = k; st.dir = 1; } else if (st.dir === 1) st.dir = -1; else st.sk = null; render(); return; }
+      if (th) { const k = th.dataset.sort; const first = isNum(k) ? -1 : 1; if (st.sk !== k) { st.sk = k; st.dir = first; } else if (st.dir === first) st.dir = -first; else st.sk = null; st.page = 0; render(); return; }
       if (e.target.closest('button[data-del]')) return del(e.target.closest('tr').dataset.id);
       const td = e.target.closest('td.ed'); if (td && !td.querySelector('input')) edit(td);
     };

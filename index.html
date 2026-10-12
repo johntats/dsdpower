@@ -109,8 +109,9 @@
         <div class="tw"><table><thead><tr><th>Customer</th><th>Type</th><th>Contract</th><th>Due</th><th class="n">Months unpaid</th><th class="n">Total balance</th><th class="n">Paid</th><th>Month paid</th><th>Status</th><th>Timing</th><th class="n">Remaining</th></tr></thead><tbody id="tb"></tbody></table></div>
         </div>
         <div id="accEdit" hidden>
+            <div id="aflt" class="flex flex-wrap items-center gap-3 mb-2"></div>
             <div class="flex flex-wrap items-center gap-3 mb-2">
-                <input id="aq" placeholder="Search name, contract or CLN" style="min-width:240px"><select id="aty"></select><select id="abl"></select>
+                <input id="aq" placeholder="Search name, contract or CLN" style="min-width:240px"><select id="abl"></select>
                 <span id="acnt" class="text-sm text-slate-500"></span><span class="flex-1"></span>
                 <button id="aadd" class="btn pri" hidden>+ Add account</button>
                 <button id="aexp" class="btn" title="Download the current data as an Excel file (backup)">Export to Excel</button>
